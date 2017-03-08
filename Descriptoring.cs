@@ -8,28 +8,51 @@ using OpenCvSharp.CPlusPlus;
 
 namespace OpenCVSharpSandbox
 {
-    public struct DescriptorsAndKeypoints
-    {
-        public KeyPoint[] Points;
-        public Mat Descriptors;
-    }
-
-    public struct ResultFromMatching
-    {
-        public double? ValidRatio;
-        public double DistanceOfMatchedDescriptors;
-        public double VaseksCoeficient;
-        public DMatch[][] Matches;
-    }
     
+   
+
     class Descriptoring
     {
+        public OrbParameters test = new OrbParameters(1200, 1.2f, 8, 45, 1, 2, ORBScore.Fast);
+
+        public OrbParameters Test
+        {
+            get { return test; }
+            set { test = value; }
+        }
+        public static readonly ORB orb = new ORB(1200, 1.2f, 8, 45, 1, 2, ORBScore.Fast);
+        private int FastThreshold = 30;
+        private static int levelPyr = 2;
         private static readonly ILog Logger = LogManager.GetLogger(typeof(Program));
+
+        public struct DescriptorsAndKeypoints
+        {
+            public KeyPoint[] Points;
+            public Mat Descriptors;
+        }
+
+        public struct ResultFromMatching
+        {
+            public double? ValidRatio;
+            public double DistanceOfMatchedDescriptors;
+            public double VaseksCoeficient;
+            public DMatch[][] Matches;
+        }
+
+        public enum Methods
+        {
+            ORB,
+            BRIEF,
+            BRISK
+        }
+
+
+
 
         internal static void briefTwoImgs(Mat img1, Mat img2)
         {
-            var result = ComputeBriefWithFast(img1, 15, true, 1);
-            var result2 = ComputeBriefWithFast(img2, 15, true, 1);
+            var result = ComputeBriefWithFast(img1, 15, 1);
+            var result2 = ComputeBriefWithFast(img2, 15, 1);
             var koeficients = MatchAndValidate(result.Descriptors, result2.Descriptors, result.Points, result2.Points);
             var outImg = new Mat();
             Cv2.DrawMatches(img1, result.Points, img2, result2.Points, koeficients.Matches, outImg);
@@ -40,10 +63,10 @@ namespace OpenCVSharpSandbox
 
         }
 
-        public static ResultFromMatching ORBtwoImgs(Mat img1, Mat img2, int nFeatures, float scaleFactor, int pLevels, int edgeThresh, int firstLevel, int wTak, ORBScore scoretype, bool draw = false)
+        public static ResultFromMatching ORBtwoImgs(Mat img1, Mat img2, bool draw = false)
         {
-            var descriptors = ComputeOrb(img1, nFeatures, scaleFactor, pLevels, edgeThresh, firstLevel, wTak, scoretype);
-            var descriptors2 = ComputeOrb(img2, nFeatures, scaleFactor, pLevels, edgeThresh, firstLevel, wTak, scoretype);
+            var descriptors = ComputeOrb(img1, orb);
+            var descriptors2 = ComputeOrb(img2, orb);
             var result = MatchAndValidate(descriptors.Descriptors, descriptors2.Descriptors, descriptors.Points,
                     descriptors2.Points);
             //Logger.Info(result.VaseksCoeficient);
@@ -56,10 +79,10 @@ namespace OpenCVSharpSandbox
                 var date = System.DateTime.Now;
                 var dir = "C:\\Users\\labudova\\Documents\\diplomka\\vysledky_analyz\\" + date.Date.ToString("d-M-yyyy");
                 System.IO.Directory.CreateDirectory(dir);
-                Cv2.ImWrite(dir + "\\ORB_matches_" + nFeatures + "_" + scaleFactor +"_"+ pLevels +"_"+ edgeThresh +"_"+ firstLevel +"_"+ wTak +"_"+ scoretype + "_" +
-                    date.Hour + "_" + date.Minute + "_" + date.Second + ".png", outImg);
-                Cv2.ImWrite(dir + "\\ORB_keypoints_" + nFeatures + "_" + scaleFactor + "_" + pLevels + "_" + edgeThresh + "_" + firstLevel + "_" + wTak + "_" + scoretype + "_" +
-                    date.Hour + "_" + date.Minute + "_" + date.Second + ".png", outImg2);
+                //Cv2.ImWrite(dir + "\\ORB_matches_" + nFeatures + "_" + scaleFactor +"_"+ pLevels +"_"+ edgeThresh +"_"+ firstLevel +"_"+ wTak +"_"+ scoretype + "_" +
+                //    date.Hour + "_" + date.Minute + "_" + date.Second + ".png", outImg);
+                //Cv2.ImWrite(dir + "\\ORB_keypoints_" + nFeatures + "_" + scaleFactor + "_" + pLevels + "_" + edgeThresh + "_" + firstLevel + "_" + wTak + "_" + scoretype + "_" +
+                //    date.Hour + "_" + date.Minute + "_" + date.Second + ".png", outImg2);
             }
 
             //Cv2.ImShow("vysledek", outImg);
@@ -155,12 +178,12 @@ namespace OpenCVSharpSandbox
                 ValidRatio = validRatio, Matches = matches, VaseksCoeficient = vasekValidace};
         }
 
-        private static DescriptorsAndKeypoints ComputeBriefWithFast(Mat img, int fastThreshold, bool nonMaxSupression, int levelImgPyr)
+        internal static DescriptorsAndKeypoints ComputeBriefWithFast(Mat img, int fastThreshold, int levelImgPyr)
         {       
             Cv2.CvtColor(img, img, ColorConversion.RgbToGray);
             img = HelperOperations.ReturnImgFromNextLevPyr(img, levelImgPyr, 0.5f);
             KeyPoint[] points;
-            Cv2.FAST(img, out points, fastThreshold, nonMaxSupression);
+            Cv2.FAST(img, out points, fastThreshold, true);
             var brief = new BriefDescriptorExtractor(64);
             var descriptors = new Mat();
             brief.Compute(img, ref points, descriptors);
@@ -169,9 +192,8 @@ namespace OpenCVSharpSandbox
             return new DescriptorsAndKeypoints {Descriptors = descriptors, Points = points};
         }
 
-        internal static DescriptorsAndKeypoints ComputeOrb(Mat img, int nFeatures, float scaleFactor, int pLevels, int edgeThresh, int firstLevel, int wTak, ORBScore scoretype )
+        internal static DescriptorsAndKeypoints ComputeOrb(Mat img, ORB orb)
         {
-            var orb = new ORB(nFeatures, scaleFactor, pLevels, edgeThresh, firstLevel, wTak, scoretype);
             var descriptors = new Mat();
             var points = orb.Detect(img);
             orb.Compute(img, ref points, descriptors);
@@ -197,6 +219,28 @@ namespace OpenCVSharpSandbox
             }
             var average = distanceTotal / matches.Length;
             return average;
+        }
+
+        public static DescriptorsAndKeypoints ComputeDescriptorsAndKeypoints(Methods method,Mat img)
+        {
+            var result = new DescriptorsAndKeypoints();
+            if (method == Methods.ORB)
+            {
+                result = ComputeOrb(img, orb);
+            }
+            else if (method == Methods.BRIEF)
+            {
+                result = ComputeBriefWithFast(img, FastThreshold, levelPyr);
+            }
+            else if (method == Methods.BRISK)
+            {
+                result = ComputeBrisk(img);
+            }
+            else
+            {
+                throw new NotImplementedException();
+            }
+            return (result);
         }
 
     }

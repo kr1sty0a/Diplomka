@@ -35,8 +35,8 @@ namespace OpenCVSharpSandbox
             public float MinDist;
         }
 
-        private const string FirstLine = "Evaluated file path; Maximal koeficient; Result based on maximal koeficient; status koef without validation; Validation; status;" +
-                                 " Minimal distance; Result based on Minimal distance; status distance without validation; Validation; Status; Correct reference file";
+        private const string FirstLine = "Evaluated file path, Maximal koeficient, Result based on maximal koeficient, status koef without validation, Validation, status," +
+                                 " Minimal distance, Result based on Minimal distance, status distance without validation, Validation, Status, Reference file found";
 
         public void EvaluateImageCollection(string device, string version, IEnumerable<Images> refImgCollection, IEnumerable<Images> testImgCollection)
         {
@@ -48,7 +48,7 @@ namespace OpenCVSharpSandbox
             var testImgs =
                 testImgCollection.Where(x => x.Device == device && x.Version == version).Select(x => x).ToArray();
             var csv = new StringBuilder();
-            csv.AppendLine(Images.orb.ToString());
+            csv.AppendLine(Images.orbParameters);
             csv.AppendLine(FirstLine);
             foreach (var t in testImgs)
             {
@@ -62,9 +62,9 @@ namespace OpenCVSharpSandbox
                 {
                     referenceFound = 0;
                 }
-                var newLine = string.Format(
-                    "{0};{1:0.###};{2};{3};{4:0.###};{5};{6:0.###};{7};{8};{9:0.###};{10};{11}", t.ScreenId, result.MaxKoef,result.BestMatchKoef.RefImg.ScreenId, result.StatusKoef, validationKoef, statusAfterValKoef, result.MinDist,
-                    result.BestMatchDist.RefImg.ScreenId, result.StatusDist, validationDist, statusAfterValKoef, referenceFound );
+                var newLine =
+                    $"{t.ScreenId},{result.MaxKoef:0.###},{result.BestMatchKoef.RefImg.ScreenId},{result.StatusKoef},{validationKoef:0.###},{statusAfterValKoef},{result.MinDist:0.###}," +
+                    $"{result.BestMatchDist.RefImg.ScreenId},{result.StatusDist},{validationDist:0.###},{statusAfterValKoef},{referenceFound}";
                 csv.AppendLine(newLine);
             }
             var date = System.DateTime.Now;

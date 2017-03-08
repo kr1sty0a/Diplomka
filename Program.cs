@@ -15,8 +15,8 @@ namespace OpenCVSharpSandbox
         public static void Main(string[] args)
         {
             var images = new Images();
-            IEnumerable<Images> refImgCollection = images.GetAllRefImages();
-            IEnumerable<Images> testImgCollection = images.GetAllTestImages();
+            IEnumerable<Images> refImgCollection = images.GetAllRefImages(Descriptoring.Methods.ORB);
+            IEnumerable<Images> testImgCollection = images.GetAllTestImages(Descriptoring.Methods.ORB);
             var evaluationOrb = new ImageEvaluation();
             evaluationOrb.EvaluateImageCollection("C364","5.0.34.1",refImgCollection, testImgCollection);
 

@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using OpenCvSharp;
@@ -8,18 +9,19 @@ namespace OpenCVSharpSandbox
 {
     class Images
     {
+
         public Mat Descriptors;
         public string Device;
         public int ScreenId;
         public string Version;
         private string Vendor;
         private KeyPoint[] Points;
-        public static readonly ORB orb = new ORB(1200, 1.2f, 8, 45, 1, 2, ORBScore.Fast);
-
+        
+        public static string orbParameters = "nFeatures = 1200, scaleFactor = 1.2, nLevels = 8, edgeThreshold = 45, firstLevel = 1, wTak = 2, Fast";
         private const string TestFolder = @"C:\Users\labudova\Google Drive\diplomka\testimages\Konica_Minolta";
         private const string RefFolder = @"C:\Users\labudova\Documents\diplomka\References";
         
-        public IEnumerable<Images> GetAllRefImages()
+        public IEnumerable<Images> GetAllRefImages(Descriptoring.Methods method)
         {
             var refImgs = HelperOperations.GetAllImgsFromFolder(RefFolder);
             var refImagesInfo = new Images[refImgs.Count];
@@ -31,16 +33,13 @@ namespace OpenCVSharpSandbox
                 var version = fileInfo.Directory.Parent.Name;
                 var vendor = fileInfo.Directory.Parent.Parent.Parent.Name;
                 var screenId = fileInfo.Directory.Name;
-                var img = Cv2.ImRead(refImgs[i], LoadMode.Color);
-                //var orb = new ORB(1200, 1.2f, 8, 45, 1, 2, ORBScore.Fast);
-                var points = orb.Detect(img);
-                var descriptors = new Mat();
-                orb.Compute(img, ref points, descriptors);
-                refImagesInfo[i] = new Images() {Descriptors = descriptors, Device = model, ScreenId = int.Parse(screenId), Version = version, Vendor = vendor, Points = points};
+                var img = Cv2.ImRead(refImgs[i]);
+                var result = Descriptoring.ComputeDescriptorsAndKeypoints(method, img);
+                refImagesInfo[i] = new Images() {Descriptors = result.Descriptors, Device = model, ScreenId = int.Parse(screenId), Version = version, Vendor = vendor, Points = result.Points};
             }
             return refImagesInfo;
         }
-        public IEnumerable<Images> GetAllTestImages()
+        public IEnumerable<Images> GetAllTestImages(Descriptoring.Methods method)
         {
             var testImgs = HelperOperations.GetAllImgsFromFolder(TestFolder);
             var testImagesInfo = new Images[testImgs.Count];
@@ -65,11 +64,8 @@ namespace OpenCVSharpSandbox
                     vendor = fileInfo.Directory.Parent.Name;
                 }
                 var img = Cv2.ImRead(testImgs[i], LoadMode.Color);
-                //var orb = new ORB(1200, 1.2f, 8, 45, 1, 2, ORBScore.Fast);
-                var points = orb.Detect(img);
-                var descriptors = new Mat();
-                orb.Compute(img, ref points, descriptors);
-                testImagesInfo[i] = new Images() { Descriptors = descriptors, Device = model, ScreenId = int.Parse(fileInfo.Name.Split('_').First()), Vendor = vendor, Version=version };
+                var result = Descriptoring.ComputeDescriptorsAndKeypoints(method, img);
+                testImagesInfo[i] = new Images() { Descriptors = result.Descriptors, Device = model, ScreenId = int.Parse(fileInfo.Name.Split('_').First()), Vendor = vendor, Version=version, Points = result.Points};
             }
             return testImagesInfo;
         }
