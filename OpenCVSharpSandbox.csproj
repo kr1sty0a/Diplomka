@@ -129,6 +129,7 @@
     <Compile Include="ImageEvaluation.cs" />
     <Compile Include="Images.cs" />
     <Compile Include="imgAnalyse.cs" />
+    <Compile Include="Optimalization.cs" />
     <Compile Include="Preprocessing.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />

@@ -206,7 +206,7 @@ namespace OpenCVSharpSandbox
         private static Tuple<Point, bool> SubmatrixLocation(DMatch[][] matches, KeyPoint[] points1, KeyPoint[] points2)
         {
             /* 
-            Input: matches: matches of reference and analyzed image keypoints
+            Input: matches: Matches of reference and analyzed image keypoints
                    points: keypoints found in analyzed image
             Output: Tuple<Point, bool>
                     Point: Location of reference in analyzed image
