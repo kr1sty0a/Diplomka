@@ -20,8 +20,8 @@ namespace OpenCVSharpSandbox
             get { return test; }
             set { test = value; }
         }
-        public static readonly ORB orb = new ORB(1200, 1.2f, 8, 45, 1, 2, ORBScore.Fast);
-        private int FastThreshold = 30;
+        public static readonly ORB orb = new ORB(1200, 1.2f, 8, 50, 1, 2, ORBScore.Fast);
+        private static int FastThreshold = 30;
         private static int levelPyr = 2;
         private static readonly ILog Logger = LogManager.GetLogger(typeof(Program));
 

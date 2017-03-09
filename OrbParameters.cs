@@ -1,5 +1,4 @@
-﻿using System.Windows.Media;
-using OpenCvSharp.CPlusPlus;
+﻿using OpenCvSharp.CPlusPlus;
 
 namespace OpenCVSharpSandbox
 {
@@ -26,14 +25,12 @@ namespace OpenCVSharpSandbox
             scoretype = ScoreType;
         }
 
+        public ORB Create()
+        {
+            return new ORB(nFeatures, scaleFactor, pLevels, edgeThresh, firstLevel, wTak, scoretype);
+        }
 
-        public ORB Create(int Nfeatures, float ScaleFactor, int PLevels, int EdgeThresh, int FirstLevel, int WTak,
-                ORBScore ScoreType)
-            {
-                return new ORB(Nfeatures, ScaleFactor, PLevels, EdgeThresh, FirstLevel, WTak, ScoreType);
-            }
-
-            public string ToString()
+        public new string ToString()
             {
             var OrbParametersString = "Nfeatures: " + nFeatures + ", ScaleFactor: " +
                                       scaleFactor + ", PLevels: " + pLevels + ", EdgeThresh: " +
