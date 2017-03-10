@@ -193,3 +193,5 @@ C:\Users\labudova\Documents\diplomka\OpenCVSharpSandbox\bin\Debug\OpenCvSharp.Bl
 C:\Users\labudova\Documents\diplomka\OpenCVSharpSandbox\bin\Debug\OpenCvSharp.CPlusPlus.xml
 C:\Users\labudova\Documents\diplomka\OpenCVSharpSandbox\bin\Debug\OpenCvSharp.Extensions.xml
 C:\Users\labudova\Documents\diplomka\OpenCVSharpSandbox\obj\Debug\OpenCVSharpSandbox.csprojResolveAssemblyReference.cache
+C:\Users\labudova\Documents\diplomka\OpenCVSharpSandbox\bin\Debug\MoreLinq.dll
+C:\Users\labudova\Documents\diplomka\OpenCVSharpSandbox\bin\Debug\MoreLinq.xml
