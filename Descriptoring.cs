@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using log4net;
 using OpenCvSharp;
@@ -13,6 +14,7 @@ namespace OpenCVSharpSandbox
 
     class Descriptoring
     {
+
         
         public OrbParameters orbParameters = new OrbParameters(1200, 1.2f, 8, 50, 1, 2, ORBScore.Fast);
 
@@ -35,9 +37,11 @@ namespace OpenCVSharpSandbox
         public struct ResultFromMatching
         {
             public double? ValidRatio;
+            public double DistanceOfMatchedDescriptorsKnn;
             public double DistanceOfMatchedDescriptors;
             public double VaseksCoeficient;
-            public DMatch[][] Matches;
+            public DMatch[][] MatchesKnn;
+            public DMatch[] Matches;
         }
 
         public enum Methods
@@ -148,6 +152,16 @@ namespace OpenCVSharpSandbox
             var average = distanceTotal / matches.Length;
             return average;
         }
+        public static double AverageDistanceOfMatchedDescriptors(DMatch[] matches)
+        {
+            float distanceTotal = 0;
+            for (var i = 0; i < matches.Length; i++)
+            {
+                distanceTotal += matches[i].Distance;
+            }
+            var average = distanceTotal / matches.Length;
+            return average;
+        }
 
         internal static List<int> DistanceOfDescriptors(Mat descriptors)
         {
@@ -173,15 +187,65 @@ namespace OpenCVSharpSandbox
             return distancesList;
         }
 
-        internal static ResultFromMatching MatchAndValidate(Mat descriptors1, Mat descriptors2, KeyPoint[] points, KeyPoint[] points2)
+        internal static ResultFromMatching MatchAndValidate(Images img1, Images img2, bool draw = false, bool returnMatches = false)
         {
             var bfmatcher = new BFMatcher(NormType.Hamming);
-            var matches = bfmatcher.KnnMatch(descriptors1, descriptors2, 2);
-            var validRatio = MatchValidator(matches, points, points2);
+            var matchesKnn = bfmatcher.KnnMatch(img1.Descriptors, img2.Descriptors, 2);
+            var matches = bfmatcher.Match(img1.Descriptors, img2.Descriptors);
+            var validRatio = MatchValidator(matchesKnn, img1.Points, img2.Points);
+            var distanceOfMatchedDescriptors = AverageDistanceOfMatchedDescriptors(matchesKnn);
+            var distanceOfMatchedDescriptors2 = AverageDistanceOfMatchedDescriptors(matches);
+            var vasekValidace = VasekValidator(matchesKnn);
+            if (draw || (vasekValidace< ImageEvaluation.TresholdForValidationKoef))
+            {
+                var image1 = Cv2.ImRead(img1.path);
+                var image2 = Cv2.ImRead(img2.path);
+                var outImg = new Mat();
+                Cv2.DrawMatches(image1, img1.Points, image2, img2.Points, matchesKnn, outImg);
+                var date = System.DateTime.Now;
+                var dir = Images.WriteFolder + "\\" + date.Date.ToString("dd-MM-yyyy");
+                Directory.CreateDirectory(dir);
+                var filePath = Path.Combine(dir, $"Match_and_validate{date.TimeOfDay:hh'-'mm'-'ss}.png"); 
+                Cv2.ImWrite(filePath,outImg);
+                if (vasekValidace < ImageEvaluation.TresholdForValidationKoef)
+                {
+                    Logger.Info($"Saving image from matching, koef: {ImageEvaluation.TresholdForValidationKoef:F}, Path: {filePath}");
+                }
+            }
+            if (returnMatches)
+            {
+                return new ResultFromMatching
+                {
+                    DistanceOfMatchedDescriptorsKnn = distanceOfMatchedDescriptors,
+                    DistanceOfMatchedDescriptors = distanceOfMatchedDescriptors2,
+                    ValidRatio = validRatio,
+                    MatchesKnn = matchesKnn,
+                    VaseksCoeficient = vasekValidace,
+                    Matches = matches
+                };
+            }
+                return new ResultFromMatching
+                {
+                    DistanceOfMatchedDescriptorsKnn = distanceOfMatchedDescriptors,
+                    DistanceOfMatchedDescriptors = distanceOfMatchedDescriptors2,
+                    ValidRatio = validRatio,
+                    VaseksCoeficient = vasekValidace
+                };
+        }
+        internal static ResultFromMatching MatchAndValidate(Mat Descriptor1, Mat Descriptor2, KeyPoint[] Points1, KeyPoint[] Points2)
+        {
+            var bfmatcher = new BFMatcher(NormType.Hamming);
+            var matches = bfmatcher.KnnMatch(Descriptor1, Descriptor2, 2);
+            var validRatio = MatchValidator(matches, Points1, Points2);
             var distanceOfMatchedDescriptors = AverageDistanceOfMatchedDescriptors(matches);
             var vasekValidace = VasekValidator(matches);
-            return new ResultFromMatching {DistanceOfMatchedDescriptors = distanceOfMatchedDescriptors,
-                ValidRatio = validRatio, Matches = matches, VaseksCoeficient = vasekValidace};
+            return new ResultFromMatching
+            {
+                DistanceOfMatchedDescriptors = distanceOfMatchedDescriptors,
+                ValidRatio = validRatio,
+                MatchesKnn = matches,
+                VaseksCoeficient = vasekValidace
+            };
         }
 
         internal static DescriptorsAndKeypoints ComputeBriefWithFast(Mat img, int fastThreshold, int levelImgPyr)
@@ -217,16 +281,7 @@ namespace OpenCVSharpSandbox
             return new DescriptorsAndKeypoints { Descriptors = descriptors, Points = points };
         }
 
-        public static double AverageDistanceOfMatchedDescriptors2(DMatch[] matches)
-        {
-            float distanceTotal = 0;
-            for (var i = 0; i < matches.Length; i++)
-            {
-                distanceTotal += matches[i].Distance;
-            }
-            var average = distanceTotal / matches.Length;
-            return average;
-        }
+        
 
         public DescriptorsAndKeypoints ComputeDescriptorsAndKeypoints(Methods method,Mat img)
         {

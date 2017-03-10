@@ -21,6 +21,7 @@ namespace OpenCVSharpSandbox
         public static string orbParameters = "nFeatures = 1200, scaleFactor = 1.2, nLevels = 8, edgeThreshold = 45, firstLevel = 1, wTak = 2, Fast";
         private const string TestFolder = @"C:\Users\labudova\Documents\diplomka\ImagesForTesting";
         private const string RefFolder = @"C:\Users\labudova\Documents\diplomka\References";
+        public static string WriteFolder = @"C:\Users\labudova\Documents\diplomka\vysledky_analyz";
         
         public Images[] GetAllRefImages(Descriptoring.Methods method)
         {

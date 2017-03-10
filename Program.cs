@@ -20,12 +20,10 @@ namespace OpenCVSharpSandbox
             var images = new Images();
             Images[] refImgCollection = images.GetAllRefImages(Descriptoring.Methods.ORB);
             Images[] testImgCollection = images.GetAllTestImages(Descriptoring.Methods.ORB);
-            //var img = Cv2.ImRead()
-            var desc = new Descriptoring();
-            var img1 = testImgCollection[0];
-            var img2 = testImgCollection[2];
-            var validate = Descriptoring.MatchAndValidate(img1.Descriptors, img2.Descriptors,
-                img1.Points, img2.Points);
+            //var desc = new Descriptoring();
+            //var img1 = testImgCollection[97];
+            //var img2 = refImgCollection[20];
+            //var validate = Descriptoring.MatchAndValidate(img1,img2,true);
            
 
 
@@ -35,7 +33,6 @@ namespace OpenCVSharpSandbox
             evaluationOrb.EvaluateImageCollection("MP C300", "5.0.34.1", refImgCollection, testImgCollection);
             evaluationOrb.EvaluateImageCollection("5335", "5.0.34.1", refImgCollection, testImgCollection);
             evaluationOrb.EvaluateImageCollection("TPv4", "5.0.34.1", refImgCollection, testImgCollection);
-            evaluationOrb.EvaluateImageCollection("TPv4", "6.0.0.11", refImgCollection, testImgCollection);
         }
     
     }

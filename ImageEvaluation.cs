@@ -14,7 +14,7 @@ namespace OpenCVSharpSandbox
             Ok
         };
 
-        private const float TresholdForValidationKoef = 0.01f;
+        public const float TresholdForValidationKoef = 0.01f;
         private const int ThresholdForValidationDist = 54;
 
         private struct Pairs
@@ -38,11 +38,8 @@ namespace OpenCVSharpSandbox
         private const string FirstLine = "Evaluated file path, Maximal koeficient, Result based on maximal koeficient, status koef without validation, Validation, status," +
                                  " Minimal distance, Result based on Minimal distance, status distance without validation, Validation, Status, Reference file found";
 
-        public void EvaluateImageCollection(string device, string version, IEnumerable<Images> refImgCollection, IEnumerable<Images> testImgCollection)
+        public void EvaluateImageCollection(string device, string version, Images[] refImgCollection, Images[] testImgCollection)
         {
-            //var images = new Images();
-            //var refImgCollection = images.GetAllRefImages();
-            //var testImgCollection = images.GetAllTestImages();
             var refImgs =
                 refImgCollection.Where(x => x.Device == device && x.Version == version).Select(x => x).ToArray();
             var testImgs =
@@ -54,7 +51,7 @@ namespace OpenCVSharpSandbox
             {
                 var result = FindReference(refImgs, t);
                 var validationKoef = Descriptoring.VasekValidator(result.BestMatchKoef.MatchesKnn);
-                var validationDist = Descriptoring.AverageDistanceOfMatchedDescriptors2(result.BestMatchDist.Matches);
+                var validationDist = Descriptoring.AverageDistanceOfMatchedDescriptors(result.BestMatchDist.Matches);
                 var statusAfterValKoef = validationKoef > TresholdForValidationKoef ? Status.Ok : Status.Fail;
                 var statusAfterValDist = validationDist > ThresholdForValidationDist ? Status.Ok : Status.Fail;
                 var referenceFound = result.BestMatchKoef.RefImg.ScreenId;
@@ -86,26 +83,28 @@ namespace OpenCVSharpSandbox
               
                 foreach (var t in refImgs)
                 {
-                    var matchesKnn = bfmatcher.KnnMatch(testImg.Descriptors, t.Descriptors, 2);
-                    var matches = bfmatcher.Match(testImg.Descriptors, t.Descriptors);
+                    var resultMatching = Descriptoring.MatchAndValidate(testImg, t,returnMatches:true);
+                    //var matchesKnn = bfmatcher.KnnMatch(testImg.Descriptors, t.Descriptors, 2);
+                    //var matches = bfmatcher.Match(testImg.Descriptors, t.Descriptors);
 
-                    var koef = Descriptoring.VasekValidator(matchesKnn);
-                    var distanceOfMatchedDescriptors = Descriptoring.AverageDistanceOfMatchedDescriptors2(matches);
-                    if (maxKoef < koef)
+                    //var koef = Descriptoring.VasekValidator(matchesKnn);
+                    //var distanceOfMatchedDescriptors = Descriptoring.AverageDistanceOfMatchedDescriptors(matches);
+                    if (maxKoef < resultMatching.VaseksCoeficient)
                     {
-                        bestMatchKoef = new Pairs() { TestImg = testImg, RefImg = t, Matches = matches, MatchesKnn = matchesKnn };
-                        maxKoef = koef;
+                        bestMatchKoef = new Pairs() { TestImg = testImg, RefImg = t, Matches = resultMatching.Matches, MatchesKnn = resultMatching.MatchesKnn };
+                        maxKoef = resultMatching.VaseksCoeficient;
                     }
-                    if (minDistance > distanceOfMatchedDescriptors)
+                    if (minDistance > resultMatching.DistanceOfMatchedDescriptors)
                     {
-                        bestMatchDist = new Pairs() { TestImg = testImg, RefImg = t, Matches = matches, MatchesKnn = matchesKnn };
-                        minDistance = distanceOfMatchedDescriptors;
+                        bestMatchDist = new Pairs() { TestImg = testImg, RefImg = t, Matches = resultMatching.Matches, MatchesKnn = resultMatching.MatchesKnn };
+                        minDistance = resultMatching.DistanceOfMatchedDescriptors;
                     }
                 }
                 statusKoef = testImg.ScreenId == bestMatchKoef.RefImg.ScreenId ? Status.Ok : Status.Fail;
                 statusDist = testImg.ScreenId == bestMatchDist.RefImg.ScreenId ? Status.Ok : Status.Fail;
            
-            var result = new ReferenceFound() { StatusKoef = statusKoef, StatusDist = statusDist, BestMatchKoef = bestMatchKoef, BestMatchDist = bestMatchDist, MaxKoef = (float)maxKoef, MinDist = (float)minDistance};
+            var result = new ReferenceFound() { StatusKoef = statusKoef, StatusDist = statusDist, BestMatchKoef = bestMatchKoef,
+                BestMatchDist = bestMatchDist, MaxKoef = (float)maxKoef, MinDist = (float)minDistance};
             return (result);
         }
     }
