@@ -4,16 +4,15 @@ namespace OpenCVSharpSandbox
 {
     public class OrbParameters
     {
-        
-            public static int nFeatures;
-            public static float scaleFactor;
-            public static int pLevels;
-            public static int edgeThresh;
-            public static int firstLevel;
-            public static int wTak;
-            public static ORBScore scoretype;
+        private static int nFeatures;
+        private static float scaleFactor;
+        private static int pLevels;
+        private static int edgeThresh;
+        private static int firstLevel;
+        private static int wTak;
+        private static ORBScore scoretype;
 
-        
+
         public OrbParameters(int Nfeatures, float ScaleFactor, int PLevels, int EdgeThresh, int FirstLevel, int WTak, ORBScore ScoreType)
         {
             nFeatures = Nfeatures;
@@ -36,7 +35,7 @@ namespace OpenCVSharpSandbox
                                       scaleFactor + ", PLevels: " + pLevels + ", EdgeThresh: " +
                                       edgeThresh +
                                       ", FirstLevel: " + firstLevel + ", WTak: " + wTak +
-                                      "ScoreType: " + scoretype;
+                                      ", ScoreType: " + scoretype;
             return OrbParametersString;
             }
         }

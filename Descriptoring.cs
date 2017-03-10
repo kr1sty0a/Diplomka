@@ -13,14 +13,10 @@ namespace OpenCVSharpSandbox
 
     class Descriptoring
     {
-        public OrbParameters test = new OrbParameters(1200, 1.2f, 8, 45, 1, 2, ORBScore.Fast);
+        
+        public OrbParameters orbParameters = new OrbParameters(1200, 1.2f, 8, 50, 1, 2, ORBScore.Fast);
 
-        public OrbParameters Test
-        {
-            get { return test; }
-            set { test = value; }
-        }
-        public static readonly ORB orb = new ORB(1200, 1.2f, 8, 50, 1, 2, ORBScore.Fast);
+        //public static readonly ORB orb = new ORB(1200, 1.2f, 8, 50, 1, 2, ORBScore.Fast);
         private static int FastThreshold = 30;
         private static int levelPyr = 2;
         private static readonly ILog Logger = LogManager.GetLogger(typeof(Program));
@@ -29,6 +25,11 @@ namespace OpenCVSharpSandbox
         {
             public KeyPoint[] Points;
             public Mat Descriptors;
+        }
+
+        internal static void MatchAndValidate(Mat descriptors1, Mat descriptors2, KeyPoint[] points)
+        {
+            throw new NotImplementedException();
         }
 
         public struct ResultFromMatching
@@ -46,7 +47,11 @@ namespace OpenCVSharpSandbox
             BRISK
         }
 
-
+        public void TestingOrb()
+        {
+            orbParameters.Create();
+            var ukazka = orbParameters.ToString();
+        }
 
 
         internal static void briefTwoImgs(Mat img1, Mat img2)
@@ -60,16 +65,17 @@ namespace OpenCVSharpSandbox
             Cv2.ImWrite(@"c:\Users\labudova\Documents\diplomka\vysledky_analyz\19_1_2017\1" + randomNumber.Next(0, 1000000) + ".png", outImg);
             Cv2.ImShow("vysledek", outImg);
             Cv2.WaitKey();
-
         }
 
-        public static ResultFromMatching ORBtwoImgs(Mat img1, Mat img2, bool draw = false)
+        public ResultFromMatching ORBtwoImgs(Mat img1, Mat img2, bool draw = false)
         {
-            var descriptors = ComputeOrb(img1, orb);
-            var descriptors2 = ComputeOrb(img2, orb);
+
+            var descriptors = ComputeOrb(img1, orbParameters.Create());
+            var descriptors2 = ComputeOrb(img2, orbParameters.Create());
             var result = MatchAndValidate(descriptors.Descriptors, descriptors2.Descriptors, descriptors.Points,
                     descriptors2.Points);
             //Logger.Info(result.VaseksCoeficient);
+
             if (draw == true)
             {
                 var outImg = new Mat();
@@ -79,10 +85,10 @@ namespace OpenCVSharpSandbox
                 var date = System.DateTime.Now;
                 var dir = "C:\\Users\\labudova\\Documents\\diplomka\\vysledky_analyz\\" + date.Date.ToString("d-M-yyyy");
                 System.IO.Directory.CreateDirectory(dir);
-                //Cv2.ImWrite(dir + "\\ORB_matches_" + nFeatures + "_" + scaleFactor +"_"+ pLevels +"_"+ edgeThresh +"_"+ firstLevel +"_"+ wTak +"_"+ scoretype + "_" +
-                //    date.Hour + "_" + date.Minute + "_" + date.Second + ".png", outImg);
-                //Cv2.ImWrite(dir + "\\ORB_keypoints_" + nFeatures + "_" + scaleFactor + "_" + pLevels + "_" + edgeThresh + "_" + firstLevel + "_" + wTak + "_" + scoretype + "_" +
-                //    date.Hour + "_" + date.Minute + "_" + date.Second + ".png", outImg2);
+                Cv2.ImWrite(dir + "\\ORB_matches_" + orbParameters.ToString() + "_" +
+                    date.Hour + "_" + date.Minute + "_" + date.Second + ".png", outImg);
+                Cv2.ImWrite(dir + "\\ORB_keypoints_" + orbParameters.Create() + "_" +
+                    date.Hour + "_" + date.Minute + "_" + date.Second + ".png", outImg2);
             }
 
             //Cv2.ImShow("vysledek", outImg);
@@ -194,6 +200,7 @@ namespace OpenCVSharpSandbox
 
         internal static DescriptorsAndKeypoints ComputeOrb(Mat img, ORB orb)
         {
+            //var orb = orbParameters.Create();
             var descriptors = new Mat();
             var points = orb.Detect(img);
             orb.Compute(img, ref points, descriptors);
@@ -221,12 +228,12 @@ namespace OpenCVSharpSandbox
             return average;
         }
 
-        public static DescriptorsAndKeypoints ComputeDescriptorsAndKeypoints(Methods method,Mat img)
+        public DescriptorsAndKeypoints ComputeDescriptorsAndKeypoints(Methods method,Mat img)
         {
             var result = new DescriptorsAndKeypoints();
             if (method == Methods.ORB)
             {
-                result = ComputeOrb(img, orb);
+                result = ComputeOrb(img, orbParameters.Create());
             }
             else if (method == Methods.BRIEF)
             {
