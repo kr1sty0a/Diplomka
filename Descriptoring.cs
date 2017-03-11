@@ -128,6 +128,26 @@ namespace OpenCVSharpSandbox
             }
             return (double) valid/((double) valid + (double) invalid);
         }
+        internal static double MatchValidator(DMatch[] matches, KeyPoint[] points1, KeyPoint[] points2)
+        {
+            var valid = 0;
+            var invalid = 0;
+            for (var i = 0; i < matches.Length; i++)
+            {
+                var point1 = points1[i].Pt;
+                var point2 = points2[matches[i].TrainIdx].Pt;
+                var distOfMatchedPoints = point1.DistanceTo(point2);
+                if (distOfMatchedPoints < 10)
+                {
+                    valid += 1;
+                }
+                else
+                {
+                    invalid += 1;
+                }
+            }
+            return (double)valid / ((double)valid + (double)invalid);
+        }
 
         public static double AverageDistanceOfMatchedDescriptors(DMatch[][] matches)
         {
@@ -280,6 +300,19 @@ namespace OpenCVSharpSandbox
                 throw new NotImplementedException();
             }
             return (result);
+        }
+
+        public static void DrawMatchesImages(Images img1, Images img2, DMatch[] matchesKnn)
+        {
+                var image1 = Cv2.ImRead(img1.path);
+                var image2 = Cv2.ImRead(img2.path);
+                var outImg = new Mat();
+                Cv2.DrawMatches(image1, img1.Points, image2, img2.Points, matchesKnn, outImg);
+                var date = System.DateTime.Now;
+                var dir = Images.WriteFolder + "\\" + date.Date.ToString("dd-MM-yyyy");
+                Directory.CreateDirectory(dir);
+                var filePath = Path.Combine(dir, $"Match_and_validate{date.TimeOfDay:hh'-'mm'-'ss}.png");
+                Cv2.ImWrite(filePath, outImg);
         }
     }
 }
