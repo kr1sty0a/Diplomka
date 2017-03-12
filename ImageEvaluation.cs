@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Text;
 using System.Windows.Controls.Primitives;
+using System.Windows.Forms;
 using log4net;
 using log4net.Repository.Hierarchy;
 using MoreLinq;
@@ -54,11 +55,14 @@ namespace OpenCVSharpSandbox
         private const string FirstLine =
             "Evaluated file path, Maximal koeficient, Result based on maximal koeficient, status koef without validation, Validation, status," +
             " Minimal distance, Result based on Minimal distance, status distance without validation, Validation, Status, Reference file found";
+        private const string FirstLineSimple = "Evaluated file path, Maximal koeficient, Result based on maximal koeficient, status koef without" +
+                                               " validation, Minimal distance, Result based on Minimal distance, Status, Reference file found";
+
         public StringBuilder csv = new StringBuilder();
 
-        public void EvaluateAll()
+        public void EvaluateAll(bool simple = false)
         {
-            csv.AppendLine(FirstLine);
+            csv.AppendLine(simple ? FirstLineSimple : FirstLine);
             var images = new Images();
             Images[] refImgCollection = images.GetAllRefImages(Descriptoring.Methods.ORB);
             Images[] testImgCollection = images.GetAllTestImages(Descriptoring.Methods.ORB);
@@ -75,7 +79,17 @@ namespace OpenCVSharpSandbox
             {
                 foreach (var j in Versions)
                 {
-                    var valuesQuality = evaluationOrb.EvaluateImageCollection(i, j, refImgCollection, testImgCollection);
+                    Quality valuesQuality;
+                    if (simple)
+                    {
+                        valuesQuality = evaluationOrb.EvaluateImageCollectionSimple(i, j, refImgCollection,
+                            testImgCollection);
+                    }
+                    else
+                    {
+                        valuesQuality = evaluationOrb.EvaluateImageCollection(i, j, refImgCollection,
+                            testImgCollection);
+                    }
                     listSpecificity.Add(valuesQuality.GetSensitivity());
                     listSensitivity.Add(valuesQuality.GetSpecificity());
                     Logger.Info($"Method: {Descriptoring.orbParameters.ToString()}, Device {i}, Version {j} Sensitivity: {valuesQuality.GetSensitivity()}, Specificity: {valuesQuality.GetSpecificity()}");
@@ -83,7 +97,7 @@ namespace OpenCVSharpSandbox
             }
             var specificity = listSpecificity.Average();
             var sensitivity = listSensitivity.Average();
-            Logger.Info($"Method: {Descriptoring.orbParameters.ToString()}, Sensitivity: {sensitivity}, Specificity: {specificity}");
+            Logger.Error($"Method: {Descriptoring.orbParameters.ToString()}, Sensitivity: {sensitivity}, Specificity: {specificity}");
         }
 
 
@@ -230,5 +244,64 @@ namespace OpenCVSharpSandbox
             return new ReferenceValidation{ReferenceFinal = referenceFinal, StatusAfterValDist = statusAfterValDist,
                 StatusAfterValKoef = statusAfterValKoef,ValidationKoef = validationKoef, ValidationDist = validationDist} ;
         }
+        public Quality EvaluateImageCollectionSimple(string device, string version, Images[] refImgCollection,
+           Images[] testImgCollection)
+        {
+            var qa = new Quality(0, 0, 0, 0);
+            csv.AppendLine($"{Images.orbParameters}, Device: {device}, Version: {version}");
+            var refImgs =
+                refImgCollection.Where(x => x.Device == device && x.Version == version).Select(x => x).ToArray();
+            var testImgs =
+                testImgCollection.Where(x => x.Device == device && x.Version == version).Select(x => x).ToArray();
+
+            foreach (var t in testImgs)
+            {
+                var result = FindReference(refImgs, t);
+                int ReferenceFinal = 0;
+                if (result.MaxKoef > TresholdForValidationKoef)
+                {
+                    ReferenceFinal = result.BestMatchKoef.RefImg.ScreenId;
+                }
+                var statusFinal = new Status();
+                if (ReferenceFinal == t.ScreenId)
+                {
+                    statusFinal = Status.Ok;
+                }
+                else
+                {
+                    statusFinal = Status.Fail;
+                }
+                var newLine =
+                    $"{t.ScreenId},{result.MaxKoef:0.###},{result.BestMatchKoef.RefImg.ScreenId},{result.StatusKoef},{result.MinDist:0.###}," +
+                    $"{result.BestMatchDist.RefImg.ScreenId},{result.StatusDist},{ReferenceFinal}, {statusFinal}";
+                csv.AppendLine(newLine);
+                if (ReferenceFinal == t.ScreenId)
+                {
+                    qa.TP += 1;
+                }
+                else if (ReferenceFinal == 0)
+                {
+                    var allScreenIds = refImgs.Select(x => x.ScreenId).ToArray();
+                    if (allScreenIds.Contains(t.ScreenId))
+                    {
+                        qa.TN += 1;
+                    }
+                    else
+                    {
+                        qa.FN += 1;
+                    }
+                }
+                else if (ReferenceFinal != t.ScreenId)
+                {
+                    qa.FP += 1;
+                }
+            }
+            var date = System.DateTime.Now;
+            var path = Path.Combine(Images.WriteFolder, $"ORB_{date:d-M-yyyy h-m}.csv");
+            File.WriteAllText(path, csv.ToString());
+            return qa;
+
+        }
+
     }
 }

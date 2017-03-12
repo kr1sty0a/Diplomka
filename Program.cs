@@ -17,24 +17,7 @@ namespace OpenCVSharpSandbox
         public static void Main(string[] args)
         {
             var evaluation = new ImageEvaluation();
-            evaluation.EvaluateAll();
-            //var images = new Images();
-            //Images[] refImgCollection = images.GetAllRefImages(Descriptoring.Methods.ORB);
-            //Images[] testImgCollection = images.GetAllTestImages(Descriptoring.Methods.ORB);
-            ////var desc = new Descriptoring();
-            ////var img1 = testImgCollection[97];
-            ////var img2 = refImgCollection[20];
-            ////var validate = Descriptoring.MatchAndValidate(img1,img2,true);
-
-            //var Devices = testImgCollection.Select(x => x.Device).Distinct().ToArray();
-            //var Versions = testImgCollection.Select(x => x.Version).Distinct().ToArray();
-
-
-            //var evaluationOrb = new ImageEvaluation();
-            //evaluationOrb.EvaluateImageCollection("C364", "5.0.34.1", refImgCollection, testImgCollection);
-            //evaluationOrb.EvaluateImageCollection("MP C300", "5.0.34.1", refImgCollection, testImgCollection);
-            //evaluationOrb.EvaluateImageCollection("5335", "5.0.34.1", refImgCollection, testImgCollection);
-            //evaluationOrb.EvaluateImageCollection("TPv4", "5.0.34.1", refImgCollection, testImgCollection);
+            evaluation.EvaluateAll(true);
         }
     
     }

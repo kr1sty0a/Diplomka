@@ -29,6 +29,10 @@ namespace OpenCVSharpSandbox
         public double GetSpecificity()
         {
             var specificity = (double)TN / (double)(TN + FP);
+            if (specificity == Double.NaN)
+            {
+                throw new DivideByZeroException();
+            }
             return specificity;
         }
     }
