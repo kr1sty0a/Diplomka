@@ -22,7 +22,7 @@ namespace OpenCVSharpSandbox
         private const string TestFolder = @"C:\Users\labudova\Documents\diplomka\ImagesForTesting";
         private const string RefFolder = @"C:\Users\labudova\Documents\diplomka\References";
         public static string WriteFolder = @"C:\Users\labudova\Documents\diplomka\vysledky_analyz";
-        
+
         public Images[] GetAllRefImages(Descriptoring.Methods method)
         {
             var refImgs = HelperOperations.GetAllImgsFromFolder(RefFolder);
