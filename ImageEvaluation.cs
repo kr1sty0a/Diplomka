@@ -2,6 +2,7 @@
 using System.IO;
 using System.Linq;
 using System.Text;
+using System.Windows.Controls.Primitives;
 using log4net;
 using log4net.Repository.Hierarchy;
 using MoreLinq;
@@ -45,7 +46,7 @@ namespace OpenCVSharpSandbox
         {
             public Status StatusAfterValKoef;
             public Status StatusAfterValDist;
-            public int ReferenceFound;
+            public int ReferenceFinal;
             public double ValidationKoef;
             public double ValidationDist;
         }
@@ -53,9 +54,11 @@ namespace OpenCVSharpSandbox
         private const string FirstLine =
             "Evaluated file path, Maximal koeficient, Result based on maximal koeficient, status koef without validation, Validation, status," +
             " Minimal distance, Result based on Minimal distance, status distance without validation, Validation, Status, Reference file found";
+        public StringBuilder csv = new StringBuilder();
 
         public void EvaluateAll()
         {
+            csv.AppendLine(FirstLine);
             var images = new Images();
             Images[] refImgCollection = images.GetAllRefImages(Descriptoring.Methods.ORB);
             Images[] testImgCollection = images.GetAllTestImages(Descriptoring.Methods.ORB);
@@ -88,30 +91,37 @@ namespace OpenCVSharpSandbox
             Images[] testImgCollection)
         {
             var qa = new Quality(0,0,0,0);
-
+            csv.AppendLine($"{Images.orbParameters}, Device: {device}, Version: {version}");
             var refImgs =
                 refImgCollection.Where(x => x.Device == device && x.Version == version).Select(x => x).ToArray();
             var testImgs =
                 testImgCollection.Where(x => x.Device == device && x.Version == version).Select(x => x).ToArray();
-            var csv = new StringBuilder();
-            csv.AppendLine($"{Images.orbParameters}, Device: {device}, Version: {version}");
-            csv.AppendLine(FirstLine);
+            
             foreach (var t in testImgs)
             {
                 var result = FindReference(refImgs, t);
                 var validate = ValidateReferenceFound(result);
+                var statusFinal = new Status();
+                if (validate.ReferenceFinal == t.ScreenId)
+                {
+                    statusFinal = Status.Ok;
+                }
+                else
+                {
+                    statusFinal = Status.Fail;
+                }
                 var newLine =
                     $"{t.ScreenId},{result.MaxKoef:0.###},{result.BestMatchKoef.RefImg.ScreenId},{result.StatusKoef},{validate.ValidationKoef:0.###},{validate.StatusAfterValKoef},{result.MinDist:0.###}," +
-                    $"{result.BestMatchDist.RefImg.ScreenId},{result.StatusDist},{validate.ValidationDist:0.###},{validate.StatusAfterValDist},{validate.ReferenceFound}";
+                    $"{result.BestMatchDist.RefImg.ScreenId},{result.StatusDist},{validate.ValidationDist:0.###},{validate.StatusAfterValDist},{validate.ReferenceFinal}, {statusFinal}";
                 csv.AppendLine(newLine);
-                if (validate.ReferenceFound == t.ScreenId)
+                if (validate.ReferenceFinal == t.ScreenId)
                 {
                     qa.TP += 1;
                 }
-                else if (validate.ReferenceFound == 0)
+                else if (validate.ReferenceFinal == 0)
                 {
-                    var allScreenIds = refImgs.Select(x => x.ScreenId = validate.ReferenceFound).ToArray();
-                    if (allScreenIds.Contains(validate.ReferenceFound))
+                    var allScreenIds = refImgs.Select(x => x.ScreenId).ToArray();
+                    if (allScreenIds.Contains(t.ScreenId))
                     {
                         qa.TN += 1;
                     }
@@ -120,7 +130,7 @@ namespace OpenCVSharpSandbox
                         qa.FN += 1;
                     }
                 }
-                else if (validate.ReferenceFound != t.ScreenId)
+                else if (validate.ReferenceFinal != t.ScreenId)
                 {
                     qa.FP += 1;
                 }
@@ -208,16 +218,16 @@ namespace OpenCVSharpSandbox
                 Descriptoring.DrawMatchesImages(reference.BestMatchDist.TestImg, reference.BestMatchDist.RefImg, reference.BestMatchDist.matches);
                 statusAfterValDist = Status.Fail;
             }
-            var referenceFound = reference.BestMatchKoef.RefImg.ScreenId;
+            var referenceFinal = reference.BestMatchKoef.RefImg.ScreenId;
             if ((statusAfterValKoef == Status.Fail) && (statusAfterValDist == Status.Fail))
             {
-                referenceFound = 0;
+                referenceFinal = 0;
             }
             else if (statusAfterValKoef == Status.Fail)
             {
-                referenceFound = reference.BestMatchDist.RefImg.ScreenId;
+                referenceFinal = reference.BestMatchDist.RefImg.ScreenId;
             }
-            return new ReferenceValidation{ReferenceFound = referenceFound, StatusAfterValDist = statusAfterValDist,
+            return new ReferenceValidation{ReferenceFinal = referenceFinal, StatusAfterValDist = statusAfterValDist,
                 StatusAfterValKoef = statusAfterValKoef,ValidationKoef = validationKoef, ValidationDist = validationDist} ;
         }
     }
