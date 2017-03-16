@@ -20,8 +20,7 @@ namespace OpenCVSharpSandbox
             Fail,
             Ok
         };
-
-        public const float TresholdForValidationKoef = 0.01f;
+        public const float TresholdForValidationKoef = 0.001f;
         private const int ThresholdForValidationDist = 54;
 
         private struct Pairs
@@ -64,15 +63,15 @@ namespace OpenCVSharpSandbox
         {
             csv.AppendLine(simple ? FirstLineSimple : FirstLine);
             var images = new Images();
-            Images[] refImgCollection = images.GetAllRefImages(Descriptoring.Methods.ORB);
-            Images[] testImgCollection = images.GetAllTestImages(Descriptoring.Methods.ORB);
+            Images[] refImgCollection = images.GetAllRefImages(Descriptoring.Methods.BRIEF);
+            Images[] testImgCollection = images.GetAllTestImages(Descriptoring.Methods.BRIEF);
             var DevicesTest = testImgCollection.Select(x => x.Device).Distinct().ToArray();
             var VersionsTest = testImgCollection.Select(x => x.Version).Distinct().ToArray();
             var DevicesRef = refImgCollection.Select(x => x.Device).Distinct().ToArray();
             var VersionsRef = refImgCollection.Select(x => x.Version).Distinct().ToArray();
             var Devices = DevicesTest.Intersect(DevicesRef).ToList();
             var Versions = VersionsTest.Intersect(VersionsRef).ToList();
-            var evaluationOrb = new ImageEvaluation();
+            var evaluation = new ImageEvaluation();
             var listSpecificity = new List<double>();
             var listSensitivity = new List<double>();
             foreach (var i in Devices)
@@ -82,16 +81,16 @@ namespace OpenCVSharpSandbox
                     Quality valuesQuality;
                     if (simple)
                     {
-                        valuesQuality = evaluationOrb.EvaluateImageCollectionSimple(i, j, refImgCollection,
+                        valuesQuality = evaluation.EvaluateImageCollectionSimple(i, j, refImgCollection,
                             testImgCollection);
                     }
                     else
                     {
-                        valuesQuality = evaluationOrb.EvaluateImageCollection(i, j, refImgCollection,
+                        valuesQuality = evaluation.EvaluateImageCollection(i, j, refImgCollection,
                             testImgCollection);
                     }
-                    listSpecificity.Add(valuesQuality.GetSensitivity());
-                    listSensitivity.Add(valuesQuality.GetSpecificity());
+                    listSpecificity.Add(valuesQuality.GetSpecificity());
+                    listSensitivity.Add(valuesQuality.GetSensitivity());
                     Logger.Info($"Method: {Descriptoring.orbParameters.ToString()}, Device {i}, Version {j} Sensitivity: {valuesQuality.GetSensitivity()}, Specificity: {valuesQuality.GetSpecificity()}");
                 }
             }
@@ -220,7 +219,7 @@ namespace OpenCVSharpSandbox
             }
             else
             {
-                Descriptoring.DrawMatchesImages(reference.BestMatchKoef.TestImg, reference.BestMatchKoef.RefImg, reference.BestMatchKoef.matchesKnn[0]);
+                Descriptoring.DrawMatchesImages(reference.BestMatchKoef.TestImg, reference.BestMatchKoef.RefImg, reference.BestMatchKoef.matchesKnn);
                 statusAfterValKoef = Status.Fail;
             }
             if (validationDist > TresholdForValidationKoef)
@@ -270,6 +269,7 @@ namespace OpenCVSharpSandbox
                 else
                 {
                     statusFinal = Status.Fail;
+                    Descriptoring.DrawMatchesImages(result.BestMatchKoef.TestImg, result.BestMatchKoef.RefImg, result.BestMatchKoef.matchesKnn);
                 }
                 var newLine =
                     $"{t.ScreenId},{result.MaxKoef:0.###},{result.BestMatchKoef.RefImg.ScreenId},{result.StatusKoef},{result.MinDist:0.###}," +

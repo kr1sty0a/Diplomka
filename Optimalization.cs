@@ -1,10 +1,12 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using log4net;
 using log4net.Repository.Hierarchy;
+using MoreLinq;
 using OpenCvSharp;
 using OpenCvSharp.CPlusPlus;
 
@@ -13,14 +15,16 @@ namespace OpenCVSharpSandbox
     class Optimalization
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(Program));
+
         public void OrbOptimalization()
         {
-            //var img1 = Cv2.ImRead(allImgs[42], LoadMode.Color);
+            StringBuilder csv = new StringBuilder();
+            var path = Path.Combine(Images.TestFolder, "Konica Minolta", "C364", "5.0.34.1");
+            var screenSelected = 4;
 
-            ////var img2 = Cv2.ImRead(allImgs[1], LoadMode.Color);
-            ////var koeficient = Descriptoring.ORBtwoImgs(img1, img2, 1000, 1.2F, 8, 31, 0, 2, ORBScore.Harris, true);
+            
 
-            //var orbScore = new ORBScore[] { ORBScore.Harris, ORBScore.Fast };
+            var orbScore = new ORBScore[] {ORBScore.Harris, ORBScore.Fast};
             ////var numOfIterations = 0;
             //var minKoef = 1d;
             //var maxKoef = 0d;
@@ -31,76 +35,112 @@ namespace OpenCVSharpSandbox
             ////{
 
             ////Logger.Debug(allImgs[i]);
-            //int[] sameKonica = new[] { 43, 44, 45, 46, 47, 48, 49, 50, 51 };
-            //for (var j = 1000; j < 2001; j += 200)
+            //int[] sameKonica = new[] {43, 44, 45, 46, 47, 48, 49, 50, 51};
+            //for (var j = 300; j < 2001; j += 200)
             //{
-            //    for (var k = 0.8f; k < 1.6f; k += 0.1f)
-            //    {
-            //        for (var l = 1; l < 10; l += 1)
-            //        {
-            //            for (var m = 40; m < 71; m += 5)
-            //            {
-            //                var n = 1;
-            //                var o = 2;
-            //                foreach (var p in orbScore)
-            //                {
-            //                    var discard = false;
-            //                    foreach (int i in sameKonica)
-            //                    {
-            //                        var img2 = Cv2.ImRead(allImgs[i], LoadMode.Color);
-            //                        var koeficient = Descriptoring.ORBtwoImgs(img1, img2, j, k, l, m, n, o, p);
-            //                        if (koeficient.ValidRatio < 0.5)
-            //                        {
-            //                            discard = true;
-            //                        }
+                var j = 500;
+            var k = 1.2f;
+            var l = 8;
+            var m = 31;
+            //var n = 0;
+                var o = 2;
+                var p = ORBScore.Harris;
 
-            //                        if ((koeficient.VaseksCoeficient < minKoef) && (koeficient.ValidRatio > 0.5))
-            //                        {
-            //                            var ParametersSameMin = new Parameters(j, k, l, m, n, o, p);
-            //                            minKoef = koeficient.VaseksCoeficient;
+            //for (var k = 0.8f; k < 1.6f; k += 0.1f)
+            //{
+            //for (var l = 1; l < 10; l += 1)
+            //{
+            //for (var m = 10; m < 80; m += 5)
+            //{
+            for (var n = 0; n < 5; n++) { 
+            //var o = 2;
+            //foreach (var p in orbScore)
+            //{
+            var discard = false;
+                                //foreach (int i in sameKonica)
+                                //{
+                                    
+                                    Descriptoring.orbParameters = new OrbParameters(j, k, l, m, n, o, p);
+                                    csv.AppendLine(Descriptoring.orbParameters.ToString());
+                                    csv.AppendLine("image,Distance of Match, Distance of KnnMatch, Koeficient computed from KnnMatch, Valid ratio computed from knnMatch, Ratio of desc with small distance  ");
+                                    var Imgs = new Images();
+                                    var testImgs = Imgs.GetAllTestImages(Descriptoring.Methods.ORB, path);
+                                    var sameImgs =
+                                        testImgs.Where(x => x.ScreenId == screenSelected).Select(x => x).ToArray();
+                                    var diffImgs =
+                                        testImgs.Where(x => x.ScreenId != screenSelected).Select(x => x).ToArray();
+                                    for (var temp = 1; temp < sameImgs.Length; temp++)
+                                    {
+                                        var result = Descriptoring.MatchAndValidate(sameImgs[0], sameImgs[temp]);
+                                        csv.AppendLine($"{sameImgs[temp].path},{result.DistanceOfMatchedDescriptors},{result.DistanceOfMatchedDescriptorsKnn}," +
+                                                       $"{result.VaseksCoeficient},{result.ValidRatio},{result.RatioDist}");
+                                    }
+                                    csv.AppendLine("different images");
+                                    foreach (var diffImg in diffImgs)
+                                    {
+                                        var result = Descriptoring.MatchAndValidate(sameImgs[0], diffImg);
+                                        csv.AppendLine($"{diffImg.path},{result.DistanceOfMatchedDescriptors},{result.DistanceOfMatchedDescriptorsKnn}," +
+                                                       $"{result.VaseksCoeficient},{result.ValidRatio},{result.RatioDist}");
+                                    }
+                                    Console.WriteLine(l.ToString());
 
-            //                        }
-            //                    }
-            //                    for (var i = 0; i < allImgs.Count; i++)
-            //                    {
-            //                        if (!(sameKonica.Contains(i) || i == 42))
-            //                        {
-            //                            var img2 = Cv2.ImRead(allImgs[i], LoadMode.Color);
-            //                            ResultFromMatching koeficient;
-            //                            if (i == 0)
-            //                            {
-            //                                koeficient = Descriptoring.ORBtwoImgs(img1, img2, j, k, l, m, n, o, p, true);
-            //                            }
-            //                            else
-            //                            {
-            //                                koeficient = Descriptoring.ORBtwoImgs(img1, img2, j, k, l, m, n, o, p);
-            //                            }
 
-            //                            if (koeficient.VaseksCoeficient > maxKoef)
-            //                            {
-            //                                maxKoef = koeficient.VaseksCoeficient;
-            //                                var ParametersMaxDiff = new Parameters(j, k, l, m, n, o, p);
-            //                            }
-            //                        }
-            //                    }
+                                    //    if (koeficient.ValidRatio < 0.5)
+                                    //    {
+                                    //        discard = true;
+                                    //    }
 
-            //                    var Diff = minKoef - maxKoef;
-            //                    if ((Diff > 0.72) && (discard == false) && Diff != 1)
-            //                    {
-            //                        var ParametersBiggestDiff = new Parameters(j, k, l, m, n, o, p);
-            //                        biggestDiff = Diff;
-            //                        Logger.Error("New maximum difference: " + Diff + ", Parameters: " + j + ", " +
-            //                                     k + ", " + l + ", " + m + ", " + n + ", " + o +
-            //                                     ", " + p);
+                                    //    if ((koeficient.VaseksCoeficient < minKoef) && (koeficient.ValidRatio > 0.5))
+                                    //    {
+                                    //        var ParametersSameMin = new Parameters(j, k, l, m, n, o, p);
+                                    //        minKoef = koeficient.VaseksCoeficient;
 
-            //                    }
-            //                    minKoef = 1;
-            //                    maxKoef = 0;
-            //                }
-            //            }
-            //        }
-            //    }
-            //}
+                                    //    }
+                                    //}
+                                    //for (var i = 0; i < allImgs.Count; i++)
+                                    //{
+                                    //    if (!(sameKonica.Contains(i) || i == 42))
+                                    //    {
+                                    //        var img2 = Cv2.ImRead(allImgs[i], LoadMode.Color);
+                                    //        ResultFromMatching koeficient;
+                                    //        if (i == 0)
+                                    //        {
+                                    //            koeficient = Descriptoring.ORBtwoImgs(img1, img2, j, k, l, m, n, o, p, true);
+                                    //        }
+                                    //        else
+                                    //        {
+                                    //            koeficient = Descriptoring.ORBtwoImgs(img1, img2, j, k, l, m, n, o, p);
+                                    //        }
+
+                                    //        if (koeficient.VaseksCoeficient > maxKoef)
+                                    //        {
+                                    //            maxKoef = koeficient.VaseksCoeficient;
+                                    //            var ParametersMaxDiff = new Parameters(j, k, l, m, n, o, p);
+                                    //        }
+                                    //    }
+                                    //}
+
+                                    //var Diff = minKoef - maxKoef;
+                                    //if ((Diff > 0.72) && (discard == false) && Diff != 1)
+                                    //{
+                                    //    var ParametersBiggestDiff = new Parameters(j, k, l, m, n, o, p);
+                                    //    biggestDiff = Diff;
+                                    //    Logger.Error("New maximum difference: " + Diff + ", Parameters: " + j + ", " +
+                                    //                 k + ", " + l + ", " + m + ", " + n + ", " + o +
+                                    //                 ", " + p);
+
+                                    //}
+                                    //minKoef = 1;
+                                    //maxKoef = 0;
+                    //            }
+                    //        }
+                    //    }
+                    //}
+                //}
+            }
+            var date = System.DateTime.Now;
+            var pathResult = Path.Combine(Images.WriteFolder, $"ORB_{date:d-M-yyyy h-m}.csv");
+            File.WriteAllText(pathResult, csv.ToString());
         }
 
         public void FastOptimalization()

@@ -16,8 +16,10 @@ namespace OpenCVSharpSandbox
        
         public static void Main(string[] args)
         {
-            var evaluation = new ImageEvaluation();
-            evaluation.EvaluateAll(true);
+            //var evaluation = new ImageEvaluation();
+            //evaluation.EvaluateAll();
+            var opt = new Optimalization();
+            opt.OrbOptimalization();
         }
     
     }

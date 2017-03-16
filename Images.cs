@@ -19,13 +19,13 @@ namespace OpenCVSharpSandbox
         public string path;
         
         public static string orbParameters = "nFeatures = 1200, scaleFactor = 1.2, nLevels = 8, edgeThreshold = 45, firstLevel = 1, wTak = 2, Fast";
-        private const string TestFolder = @"C:\Users\labudova\Documents\diplomka\ImagesForTesting";
+        public const string TestFolder = @"C:\Users\labudova\Documents\diplomka\ImagesForTesting";
         private const string RefFolder = @"C:\Users\labudova\Documents\diplomka\References";
         public static string WriteFolder = @"C:\Users\labudova\Documents\diplomka\vysledky_analyz";
 
-        public Images[] GetAllRefImages(Descriptoring.Methods method)
+        public Images[] GetAllRefImages(Descriptoring.Methods method, string path = RefFolder)
         {
-            var refImgs = HelperOperations.GetAllImgsFromFolder(RefFolder);
+            var refImgs = HelperOperations.GetAllImgsFromFolder(path);
             var refImagesInfo = new Images[refImgs.Count];
             for (var i = 0; i < refImgs.Count; i++)
             {
@@ -42,9 +42,9 @@ namespace OpenCVSharpSandbox
             }
             return refImagesInfo;
         }
-        public Images[] GetAllTestImages(Descriptoring.Methods method)
+        public Images[] GetAllTestImages(Descriptoring.Methods method, string path = TestFolder)
         {
-            var testImgs = HelperOperations.GetAllImgsFromFolder(TestFolder);
+            var testImgs = HelperOperations.GetAllImgsFromFolder(path);
             var testImagesInfo = new Images[testImgs.Count];
             for (var i = 0; i < testImgs.Count; i++)
             {

@@ -14,9 +14,10 @@ namespace OpenCVSharpSandbox
         public static OrbParameters orbParameters = new OrbParameters(1200, 1.2f, 8, 50, 1, 2, ORBScore.Fast);
 
         //public static readonly ORB orb = new ORB(1200, 1.2f, 8, 50, 1, 2, ORBScore.Fast);
-        private static int FastThreshold = 30;
-        private static int levelPyr = 2;
+        private static int FastThreshold = 35;
+        private static int levelPyr = 1;
         private static readonly ILog Logger = LogManager.GetLogger(typeof(Program));
+        private static float thresholdForDistance = 0.9f;
 
         public struct DescriptorsAndKeypoints
         {
@@ -30,6 +31,7 @@ namespace OpenCVSharpSandbox
             public double DistanceOfMatchedDescriptorsKnn;
             public double DistanceOfMatchedDescriptors;
             public double VaseksCoeficient;
+            public double RatioDist;
             public DMatch[][] MatchesKnn;
             public DMatch[] Matches;
         }
@@ -81,6 +83,15 @@ namespace OpenCVSharpSandbox
 
             //Cv2.ImShow("vysledek", outImg);
             //Cv2.WaitKey();
+            return result;
+        }
+
+        public ResultFromMatching ORBtwoImgs(Mat img1, Mat img2, OrbParameters orbPar)
+        {
+            var descriptors = ComputeOrb(img1, orbPar.Create());
+            var descriptors2 = ComputeOrb(img2, orbPar.Create());
+            var result = MatchAndValidate(descriptors.Descriptors, descriptors2.Descriptors, descriptors.Points,
+                descriptors2.Points);
             return result;
         }
 
@@ -194,16 +205,34 @@ namespace OpenCVSharpSandbox
             return distancesList;
         }
 
+        internal static double RatioOfDescriptorsWithSmallDistance(DMatch[] matches)
+        {
+            //var maximum = matches.Select(x => x.Distance).Average();
+            var matchesWithSmallDist = matches.Where(x => x.Distance < 50).Select(x => x).ToList().Count;
+            return matchesWithSmallDist/(double)matches.Length;
+        }
+
         internal static ResultFromMatching MatchAndValidate(Images img1, Images img2, bool draw = false)
         {
             var bfmatcher = new BFMatcher(NormType.Hamming);
             var matchesKnn = bfmatcher.KnnMatch(img1.Descriptors, img2.Descriptors, 2);
-            var matches = bfmatcher.Match(img1.Descriptors, img2.Descriptors);
+            var bfmatcher2 = new BFMatcher(NormType.Hamming,true);
+            var matches = bfmatcher2.Match(img1.Descriptors, img2.Descriptors);
             var validRatio = MatchValidator(matchesKnn, img1.Points, img2.Points);
             var distanceOfMatchedDescriptors = AverageDistanceOfMatchedDescriptors(matchesKnn);
             var distanceOfMatchedDescriptors2 = AverageDistanceOfMatchedDescriptors(matches);
+            var ratioDist = 0d;  
+            if (matches.Length > 0)
+            {
+                ratioDist = RatioOfDescriptorsWithSmallDistance(matches);
+            }
+            else
+            {
+                Logger.Error("No matches");
+            }
+            
             var vasekValidace = VasekValidator(matchesKnn);
-            if (draw || (vasekValidace < ImageEvaluation.TresholdForValidationKoef))
+            if (draw && (vasekValidace < ImageEvaluation.TresholdForValidationKoef))
             {
                 var image1 = Cv2.ImRead(img1.path);
                 var image2 = Cv2.ImRead(img2.path);
@@ -212,7 +241,7 @@ namespace OpenCVSharpSandbox
                 var date = System.DateTime.Now;
                 var dir = Images.WriteFolder + "\\" + date.Date.ToString("dd-MM-yyyy");
                 Directory.CreateDirectory(dir);
-                var filePath = Path.Combine(dir, $"Match_and_validate{date.TimeOfDay:hh'-'mm'-'ss}.png");
+                var filePath = Path.Combine(dir, $"{img1.Device}_{img1.ScreenId}_{img2.ScreenId}_{date.TimeOfDay:hh'-'mm'-'ss}.png");
                 Cv2.ImWrite(filePath, outImg);
                 if (vasekValidace < ImageEvaluation.TresholdForValidationKoef)
                 {
@@ -225,14 +254,15 @@ namespace OpenCVSharpSandbox
                 DistanceOfMatchedDescriptorsKnn = distanceOfMatchedDescriptors,
                 DistanceOfMatchedDescriptors = distanceOfMatchedDescriptors2,
                 ValidRatio = validRatio,
-                VaseksCoeficient = vasekValidace
+                VaseksCoeficient = vasekValidace,
+                RatioDist = ratioDist
             };
         }
 
         internal static ResultFromMatching MatchAndValidate(Mat Descriptor1, Mat Descriptor2, KeyPoint[] Points1,
             KeyPoint[] Points2)
         {
-            var bfmatcher = new BFMatcher(NormType.Hamming);
+            var bfmatcher = new BFMatcher(NormType.Hamming,true);
             var matches = bfmatcher.KnnMatch(Descriptor1, Descriptor2, 2);
             var validRatio = MatchValidator(matches, Points1, Points2);
             var distanceOfMatchedDescriptors = AverageDistanceOfMatchedDescriptors(matches);
@@ -311,8 +341,22 @@ namespace OpenCVSharpSandbox
                 var date = System.DateTime.Now;
                 var dir = Images.WriteFolder + "\\" + date.Date.ToString("dd-MM-yyyy");
                 Directory.CreateDirectory(dir);
-                var filePath = Path.Combine(dir, $"Match_and_validate{date.TimeOfDay:hh'-'mm'-'ss}.png");
+                var filePath = Path.Combine(dir, $"{img1.Device}_{img1.ScreenId}_{img2.ScreenId}_{date.TimeOfDay:hh'-'mm'-'ss}.png");
                 Cv2.ImWrite(filePath, outImg);
+        }
+        public static void DrawMatchesImages(Images img1, Images img2, DMatch[][] matchesKnn)
+        {
+            var image1 = Cv2.ImRead(img1.path);
+            var image2 = Cv2.ImRead(img2.path);
+            var outImg = new Mat();
+            var newMatches = new DMatch[matchesKnn.Length];
+            newMatches = matchesKnn.Select(x => x[0]).ToArray();
+            Cv2.DrawMatches(image1, img1.Points, image2, img2.Points, newMatches, outImg);
+            var date = System.DateTime.Now;
+            var dir = Images.WriteFolder + "\\" + date.Date.ToString("dd-MM-yyyy");
+            Directory.CreateDirectory(dir);
+            var filePath = Path.Combine(dir, $"{img1.Device}_{img1.ScreenId}_{img2.ScreenId}_{date.TimeOfDay:hh'-'mm'-'ss}.png");
+            Cv2.ImWrite(filePath, outImg);
         }
     }
 }
