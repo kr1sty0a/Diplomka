@@ -169,7 +169,7 @@ namespace OpenCVSharpSandbox
                 var bfmatcher = new BFMatcher(NormType.Hamming);
                 var matchesKnn = bfmatcher.KnnMatch(testImg.Descriptors, t.Descriptors, 2);
                 var matches = bfmatcher.Match(testImg.Descriptors, t.Descriptors);
-                var resultKoef = Descriptoring.VasekValidator(matchesKnn);
+                var resultKoef = Descriptoring.RatioValidator(matchesKnn);
                 var resultDist = Descriptoring.AverageDistanceOfMatchedDescriptors(matches);
                 if (maxKoef < resultKoef)
                 {

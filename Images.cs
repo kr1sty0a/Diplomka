@@ -1,15 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.IO;
 using System.Linq;
 using OpenCvSharp;
 using OpenCvSharp.CPlusPlus;
+using log4net;
 
 namespace OpenCVSharpSandbox
 {
+    
     class Images
     {
-
+        private static readonly ILog Logger = LogManager.GetLogger(typeof(Images));
         public Mat Descriptors;
         public string Device;
         public int ScreenId;
@@ -20,13 +23,14 @@ namespace OpenCVSharpSandbox
         
         public static string orbParameters = "nFeatures = 1200, scaleFactor = 1.2, nLevels = 8, edgeThreshold = 45, firstLevel = 1, wTak = 2, Fast";
         public const string TestFolder = @"C:\Users\labudova\Documents\diplomka\ImagesForTesting";
-        private const string RefFolder = @"C:\Users\labudova\Documents\diplomka\References";
+        public const string RefFolder = @"C:\Users\labudova\Documents\diplomka\References";
         public static string WriteFolder = @"C:\Users\labudova\Documents\diplomka\vysledky_analyz";
 
         public Images[] GetAllRefImages(Descriptoring.Methods method, string path = RefFolder)
         {
             var refImgs = HelperOperations.GetAllImgsFromFolder(path);
             var refImagesInfo = new Images[refImgs.Count];
+            var timeTotal = 0l;
             for (var i = 0; i < refImgs.Count; i++)
             {
                 var imgPath = refImgs[i];               
@@ -37,9 +41,15 @@ namespace OpenCVSharpSandbox
                 var screenId = fileInfo.Directory.Name;
                 var img = Cv2.ImRead(refImgs[i]);
                 var descriptoring = new Descriptoring();
+                
+                var timer = new Stopwatch();
+                timer.Start();
                 var result = descriptoring.ComputeDescriptorsAndKeypoints(method, img);
+                timer.Stop();
+                timeTotal += timer.ElapsedMilliseconds;
                 refImagesInfo[i] = new Images() {Descriptors = result.Descriptors, Device = model, ScreenId = int.Parse(screenId), Version = version, Vendor = vendor, Points = result.Points, path = imgPath};
             }
+            Logger.Info($"total time elapsed: {timeTotal}");
             return refImagesInfo;
         }
         public Images[] GetAllTestImages(Descriptoring.Methods method, string path = TestFolder)

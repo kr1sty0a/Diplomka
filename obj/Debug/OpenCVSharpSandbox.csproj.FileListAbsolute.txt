@@ -262,3 +262,5 @@ D:\Documents\diplomka\OpenCVSharpSandbox\bin\Debug\OpenCvSharp.Blob.xml
 D:\Documents\diplomka\OpenCVSharpSandbox\bin\Debug\OpenCvSharp.CPlusPlus.xml
 D:\Documents\diplomka\OpenCVSharpSandbox\bin\Debug\OpenCvSharp.Extensions.xml
 D:\Documents\diplomka\OpenCVSharpSandbox\obj\Debug\OpenCVSharpSandbox.csprojResolveAssemblyReference.cache
+C:\Users\labudova\Documents\diplomka\OpenCVSharpSandbox\obj\Debug\OpenCVSharpSandbox.Properties.Resources.resources
+C:\Users\labudova\Documents\diplomka\OpenCVSharpSandbox\obj\Debug\OpenCVSharpSandbox.csproj.GenerateResource.Cache

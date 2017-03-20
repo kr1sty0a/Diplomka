@@ -9,7 +9,7 @@ namespace OpenCVSharpSandbox
         private static int pLevels;
         private static int edgeThresh;
         private static int firstLevel;
-        private static int wTak;
+        public int wTak;
         private static ORBScore scoretype;
 
 

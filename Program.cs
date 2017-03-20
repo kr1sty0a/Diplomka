@@ -19,7 +19,13 @@ namespace OpenCVSharpSandbox
             //var evaluation = new ImageEvaluation();
             //evaluation.EvaluateAll();
             var opt = new Optimalization();
-            opt.OrbOptimalization();
+            //opt.OrbOptimalization();
+
+            //opt.MatchTiming(Optimalization.MatcherType.Match,1500);
+            //opt.MatchTiming(Optimalization.MatcherType.Knn,1500);
+            //opt.MatchTiming(Optimalization.MatcherType.Flann,500);
+            var img = new Images();
+            img.GetAllRefImages(Descriptoring.Methods.BRISK);
         }
     
     }

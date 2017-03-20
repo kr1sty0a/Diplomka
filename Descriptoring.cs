@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Linq.Expressions;
 using log4net;
 using OpenCvSharp;
 using OpenCvSharp.CPlusPlus;
@@ -30,8 +31,9 @@ namespace OpenCVSharpSandbox
             public double? ValidRatio;
             public double DistanceOfMatchedDescriptorsKnn;
             public double DistanceOfMatchedDescriptors;
-            public double VaseksCoeficient;
+            public double RatioCoeficient;
             public double RatioDist;
+            public double RatioCross;
             public DMatch[][] MatchesKnn;
             public DMatch[] Matches;
         }
@@ -64,7 +66,7 @@ namespace OpenCVSharpSandbox
             var descriptors2 = ComputeOrb(img2, orbParameters.Create());
             var result = MatchAndValidate(descriptors.Descriptors, descriptors2.Descriptors, descriptors.Points,
                 descriptors2.Points);
-            //Logger.Info(result.VaseksCoeficient);
+            //Logger.Info(result.RatioCoeficient);
 
             if (draw == true)
             {
@@ -110,7 +112,7 @@ namespace OpenCVSharpSandbox
             Cv2.WaitKey();
         }
 
-        internal static double VasekValidator(DMatch[][] matches)
+        internal static double RatioValidator(DMatch[][] matches)
         {
             var c1 = (double) matches.Where(t => t.Length == 2 && t[0].Distance < 0.75*t[1].Distance)
                 .Select(t => t[0])
@@ -207,20 +209,33 @@ namespace OpenCVSharpSandbox
 
         internal static double RatioOfDescriptorsWithSmallDistance(DMatch[] matches)
         {
-            //var maximum = matches.Select(x => x.Distance).Average();
             var matchesWithSmallDist = matches.Where(x => x.Distance < 50).Select(x => x).ToList().Count;
             return matchesWithSmallDist/(double)matches.Length;
         }
 
+        internal static double RationOfCrossMatchedDesc(DMatch[][] matchesKnn, DMatch[] matches)
+        {
+            return (double) matches.Length/(double) matchesKnn.Length;
+        }
+
         internal static ResultFromMatching MatchAndValidate(Images img1, Images img2, bool draw = false)
         {
-            var bfmatcher = new BFMatcher(NormType.Hamming);
+            var bfmatcher = new BFMatcher();
+            if (orbParameters.wTak > 2)
+            {
+                bfmatcher = new BFMatcher(NormType.Hamming2);
+            }
+            else
+            {
+                bfmatcher = new BFMatcher(NormType.Hamming2);
+            }
             var matchesKnn = bfmatcher.KnnMatch(img1.Descriptors, img2.Descriptors, 2);
             var bfmatcher2 = new BFMatcher(NormType.Hamming,true);
             var matches = bfmatcher2.Match(img1.Descriptors, img2.Descriptors);
             var validRatio = MatchValidator(matchesKnn, img1.Points, img2.Points);
             var distanceOfMatchedDescriptors = AverageDistanceOfMatchedDescriptors(matchesKnn);
             var distanceOfMatchedDescriptors2 = AverageDistanceOfMatchedDescriptors(matches);
+            var ratioCross = RationOfCrossMatchedDesc(matchesKnn, matches);
             var ratioDist = 0d;  
             if (matches.Length > 0)
             {
@@ -231,8 +246,8 @@ namespace OpenCVSharpSandbox
                 Logger.Error("No matches");
             }
             
-            var vasekValidace = VasekValidator(matchesKnn);
-            if (draw && (vasekValidace < ImageEvaluation.TresholdForValidationKoef))
+            var ratioValidator = RatioValidator(matchesKnn);
+            if (draw && (ratioValidator < ImageEvaluation.TresholdForValidationKoef))
             {
                 var image1 = Cv2.ImRead(img1.path);
                 var image2 = Cv2.ImRead(img2.path);
@@ -243,7 +258,7 @@ namespace OpenCVSharpSandbox
                 Directory.CreateDirectory(dir);
                 var filePath = Path.Combine(dir, $"{img1.Device}_{img1.ScreenId}_{img2.ScreenId}_{date.TimeOfDay:hh'-'mm'-'ss}.png");
                 Cv2.ImWrite(filePath, outImg);
-                if (vasekValidace < ImageEvaluation.TresholdForValidationKoef)
+                if (ratioValidator < ImageEvaluation.TresholdForValidationKoef)
                 {
                     Logger.Info(
                         $"Saving image from matching, koef: {ImageEvaluation.TresholdForValidationKoef:F}, Path: {filePath}");
@@ -254,8 +269,9 @@ namespace OpenCVSharpSandbox
                 DistanceOfMatchedDescriptorsKnn = distanceOfMatchedDescriptors,
                 DistanceOfMatchedDescriptors = distanceOfMatchedDescriptors2,
                 ValidRatio = validRatio,
-                VaseksCoeficient = vasekValidace,
-                RatioDist = ratioDist
+                RatioCoeficient = ratioValidator,
+                RatioDist = ratioDist,
+                RatioCross = matches.Length
             };
         }
 
@@ -266,13 +282,13 @@ namespace OpenCVSharpSandbox
             var matches = bfmatcher.KnnMatch(Descriptor1, Descriptor2, 2);
             var validRatio = MatchValidator(matches, Points1, Points2);
             var distanceOfMatchedDescriptors = AverageDistanceOfMatchedDescriptors(matches);
-            var vasekValidace = VasekValidator(matches);
+            var vasekValidace = RatioValidator(matches);
             return new ResultFromMatching
             {
                 DistanceOfMatchedDescriptors = distanceOfMatchedDescriptors,
                 ValidRatio = validRatio,
                 MatchesKnn = matches,
-                VaseksCoeficient = vasekValidace
+                RatioCoeficient = vasekValidace
             };
         }
 
@@ -301,12 +317,22 @@ namespace OpenCVSharpSandbox
 
         internal static DescriptorsAndKeypoints ComputeBrisk(Mat img)
         {
-            var brisk = new BRISK();
-            var descriptors = new Mat();
-            KeyPoint[] points;
-            points = brisk.Detect(img);
-            brisk.Compute(img, ref points, descriptors);
-            return new DescriptorsAndKeypoints {Descriptors = descriptors, Points = points};
+            try
+            {
+                var brisk = new BRISK();
+                var descriptors = new Mat();
+                KeyPoint[] points;
+                points = brisk.Detect(img);
+                brisk.Compute(img, ref points, descriptors);
+                return new DescriptorsAndKeypoints {Descriptors = descriptors, Points = points};
+            }
+
+            catch (Exception)
+            {
+                return new DescriptorsAndKeypoints
+                {
+                };
+            }
         }
 
 

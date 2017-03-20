@@ -48,18 +48,15 @@ namespace OpenCVSharpSandbox
             {
                 return Color.red;
             }
-            else if ((ColorOfPreview[0] < 125) && (ColorOfPreview[1] > 125) && (ColorOfPreview[2] < 125))
+            if ((ColorOfPreview[0] < 125) && (ColorOfPreview[1] > 125) && (ColorOfPreview[2] < 125))
             {
                 return Color.green;
             }
-            else if ((ColorOfPreview[0] < 125) && (ColorOfPreview[1] < 125) && (ColorOfPreview[2] > 125))
+            if ((ColorOfPreview[0] < 125) && (ColorOfPreview[1] < 125) && (ColorOfPreview[2] > 125))
             {
                 return Color.blue;
             }
-            else
-            {
                 return Color.unrecognized;
-            }
         }
 
         private void Monotonnost()
