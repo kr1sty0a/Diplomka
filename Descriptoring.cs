@@ -126,95 +126,7 @@ namespace OpenCVSharpSandbox
             return c1/matches.Length;
         }
 
-        internal static double MatchValidator(DMatch[][] matches, KeyPoint[] points1, KeyPoint[] points2)
-        {
-            var valid = 0;
-            var invalid = 0;
-            var shiftValid = new List<List<float>>();
-            var shiftInvalid = new List<List<float>>();
-            var shiftVectorsValid = new List<Vec2f>();
-            var shiftVectorsInvalid = new List<Vec2f>();
-            var Points1 = points1.Select(x => x.Pt).ToArray();
-            for (var i = 0; i < matches.Length; i++)
-            {
-                var point1 = Points1[i];
-                Cv2.Circle(imgs.img1, point1, 1,new Scalar(255,0,0) );
-                var point2 = points2[matches[i][0].TrainIdx].Pt;
-                Cv2.Circle(imgs.img1, point2, 1, new Scalar(0, 0, 255));
-                Cv2.Line(imgs.img1, point1,point2, new Scalar(255,255,0));
-                var distOfMatchedPoints = point1.DistanceTo(point2);
-                if (distOfMatchedPoints < 10)
-                {
-                    valid += 1;
-                    shiftValid.Add(new List<float>() { ComputeSlope(point1, point2), (float)distOfMatchedPoints });
-                    shiftVectorsValid.Add(GetShiftVector(point1, point2));
-                }
-                else
-                {
-                    invalid += 1;
-                    shiftInvalid.Add(new List<float>() { ComputeSlope(point1, point2), (float)distOfMatchedPoints });
-                    shiftVectorsInvalid.Add(GetShiftVector(point1, point2));
-                }
-            }
-            var validationKoeficient = (double)valid / ((double)valid + (double)invalid);
-            var collection = shiftInvalid.ToArray();
-            if (validationKoeficient < 0.5)
-            {
-                var averageSlope = shiftInvalid.Select(x => x[0]).Average();
-                //var Slope = shiftInvalid.Select(x => (double)x[0]).ToArray();
-                var averageShift = shiftInvalid.Select(x => x[1]).Average();
-                //var Shift = shiftInvalid.Select(x => (double)x[1]).ToArray();
-                //var std = StdDev(Slope);
-                //var std2 = StdDev(Shift);
-                var averageShiftVector =
-                    shiftVectorsInvalid.Select(
-                        x =>
-                            new Point2f(shiftVectorsInvalid.Select(y => y.Item0).Average(), shiftVectorsInvalid.Select(y => y.Item1).Average())).First();
-                var test =
-                    shiftInvalid.Where(x => (x[0] < averageSlope + 1)&& (x[0] > (averageSlope - 1)))
-                        .Select(x => x)
-                        .ToArray().Length;
-                if (test > 0.9*shiftInvalid.Count)
-                {
-                    Logger.Warn("Image was verified but camera might not be calibrated properly.Trying to compensate");
-
-                }
-
-                var Points1Compensation =
-                    Points1.Select(x => new Point2f(x.X + 8*averageShiftVector.X, x.Y + averageShiftVector.Y))
-                        .ToArray();
-                valid = 0;
-                invalid = 0;
-                for (var i = 0; i < matches.Length; i++)
-                {
-                    var point1 = Points1Compensation[i];
-                    Cv2.Circle(imgs.img1, point1, 1, new Scalar(0, 255, 0));
-                    var point2 = points2[matches[i][0].TrainIdx].Pt;
-                    var distOfMatchedPoints = point1.DistanceTo(point2);
-                    
-                    if (distOfMatchedPoints < 10)
-                    {
-                        valid += 1;
-                    }
-                    else
-                    {
-                        invalid += 1;
-                        shiftInvalid.Add(new List<float>() { ComputeSlope(point1, point2), (float)distOfMatchedPoints });
-                    }
-                    
-                }
-                if (valid > invalid)
-                {
-                    Logger.Info("Compensation was successful, match was verified");
-                }
-                averageShift = shiftInvalid.Select(x => x[1]).Average();
-                //var res = test.Where(
-                //    x =>
-                //        (x[1] < averageShift + 30 )&&(x[1] > averageShift - 30)).
-                //        Select(x => x).ToArray();
-            }
-            return (double) valid/((double) valid + (double) invalid);
-        }
+        
 
         public static double StdDev(double[] values)
         {
@@ -238,10 +150,6 @@ namespace OpenCVSharpSandbox
         {
             var valid = 0;
             var invalid = 0;
-            var shiftValid = new List<List<float>>();
-            var shiftInvalid = new List<List<float>>();
-            var shiftVectors = new List<Vec2f>();
-
             for (var i = 0; i < matches.Length; i++)
             {
                 var point1 = points1[i].Pt;
@@ -250,30 +158,36 @@ namespace OpenCVSharpSandbox
                 if (distOfMatchedPoints < 10)
                 {
                     valid += 1;
-                    shiftValid.Add(new List<float>(){ ComputeSlope(point1, point2) , (float)distOfMatchedPoints});
-                    shiftVectors.Add(GetShiftVector(point1, point2));
                 }
                 else
                 {
                     invalid += 1;
-                    shiftInvalid.Add(new List<float>() { ComputeSlope(point1, point2), (float)distOfMatchedPoints });
-                    shiftVectors.Add(GetShiftVector(point1, point2));
+                }
+            }
+            return (double)valid / ((double)valid + (double)invalid);
+        }
+        internal static double MatchValidator(DMatch[][] matches, KeyPoint[] points1, KeyPoint[] points2)
+        {
+            var valid = 0;
+            var invalid = 0;
+            for (var i = 0; i < matches.Length; i++)
+            {
+                var point1 = points1[i].Pt;
+                var point2 = points2[matches[i][0].TrainIdx].Pt;
+                var distOfMatchedPoints = point1.DistanceTo(point2);
+                if (distOfMatchedPoints < 10)
+                {
+                    valid += 1;
+                }
+                else
+                {
+                    invalid += 1;
                 }
             }
             return (double)valid / ((double)valid + (double)invalid);
         }
 
-        public static float ComputeSlope(Point2f point1, Point2f point2)
-        {
-            var slope = Math.Abs(point1.Y - point2.Y)/Math.Abs(point1.X - point2.X);
-            return slope;
-        }
 
-        public static Vec2f GetShiftVector(Point2f point1, Point2f point2)
-        {
-            var vector = new Vec2f(point2.X - point1.X, point2.Y - point1.Y);
-            return vector;
-        }
 
         public static double AverageDistanceOfMatchedDescriptors(DMatch[][] matches)
         {

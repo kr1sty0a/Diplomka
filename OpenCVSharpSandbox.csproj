@@ -134,6 +134,7 @@
     <Compile Include="Images.cs" />
     <Compile Include="imgAnalyse.cs" />
     <Compile Include="imgs.cs" />
+    <Compile Include="MatchValidator.cs" />
     <Compile Include="Optimalization.cs" />
     <Compile Include="OrbParameters.cs" />
     <Compile Include="Preprocessing.cs" />

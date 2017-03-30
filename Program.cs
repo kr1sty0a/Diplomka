@@ -26,8 +26,8 @@ namespace OpenCVSharpSandbox
             var bfmatcher = new BFMatcher(NormType.Hamming);
             var matches = bfmatcher.Match(result1.Descriptors, result2.Descriptors);
             
-            var res = Descriptoring.MatchAndValidate(result1.Descriptors, result2.Descriptors, result1.Points, result2.Points);
-            var imgOut = new Mat();
+            MatchValidator.Validate(matches, result1.Points, result2.Points);
+            //var imgOut = new Mat();
             //Cv2.DrawMatches(imgs.img1, result1.Points, imgs.img2, result2.Points, matches, imgOut);
             //Cv2.ImShow("obr", imgOut);
             Cv2.ImShow("compensation",imgs.img1);
