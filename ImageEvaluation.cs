@@ -104,7 +104,7 @@ namespace OpenCVSharpSandbox
             Images[] testImgCollection)
         {
             var qa = new Quality(0,0,0,0);
-            csv.AppendLine($"{Images.orbParameters}, Device: {device}, Version: {version}");
+            csv.AppendLine($"{Descriptoring.orbParameters}, Device: {device}, Version: {version}");
             var refImgs =
                 refImgCollection.Where(x => x.Device == device && x.Version == version).Select(x => x).ToArray();
             var testImgs =
@@ -247,7 +247,7 @@ namespace OpenCVSharpSandbox
            Images[] testImgCollection)
         {
             var qa = new Quality(0, 0, 0, 0);
-            csv.AppendLine($"{Images.orbParameters}, Device: {device}, Version: {version}");
+            csv.AppendLine($"{Descriptoring.orbParameters}, Device: {device}, Version: {version}");
             var refImgs =
                 refImgCollection.Where(x => x.Device == device && x.Version == version).Select(x => x).ToArray();
             var testImgs =

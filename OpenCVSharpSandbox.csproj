@@ -133,6 +133,7 @@
     <Compile Include="ImageEvaluation.cs" />
     <Compile Include="Images.cs" />
     <Compile Include="imgAnalyse.cs" />
+    <Compile Include="imgs.cs" />
     <Compile Include="Optimalization.cs" />
     <Compile Include="OrbParameters.cs" />
     <Compile Include="Preprocessing.cs" />
@@ -144,6 +145,7 @@
       <DependentUpon>Resources.resx</DependentUpon>
     </Compile>
     <Compile Include="Quality.cs" />
+    <Compile Include="UnitTests.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">

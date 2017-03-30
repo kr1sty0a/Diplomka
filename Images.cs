@@ -20,8 +20,8 @@ namespace OpenCVSharpSandbox
         private string Vendor;
         public KeyPoint[] Points;
         public string path;
+
         
-        public static string orbParameters = "nFeatures = 1200, scaleFactor = 1.2, nLevels = 8, edgeThreshold = 45, firstLevel = 1, wTak = 2, Fast";
         public const string TestFolder = @"C:\Users\labudova\Documents\diplomka\ImagesForTesting";
         public const string RefFolder = @"C:\Users\labudova\Documents\diplomka\References";
         public static string WriteFolder = @"C:\Users\labudova\Documents\diplomka\vysledky_analyz";
@@ -40,8 +40,7 @@ namespace OpenCVSharpSandbox
                 var vendor = fileInfo.Directory.Parent.Parent.Parent.Name;
                 var screenId = fileInfo.Directory.Name;
                 var img = Cv2.ImRead(refImgs[i]);
-                var descriptoring = new Descriptoring();
-                
+                var descriptoring = new Descriptoring();  
                 var timer = new Stopwatch();
                 timer.Start();
                 var result = descriptoring.ComputeDescriptorsAndKeypoints(method, img);

@@ -22,6 +22,19 @@ namespace OpenCVSharpSandbox
             return MedianDistance;
         }
 
+        internal static float MedianFromList(List<float> list)
+        {
+            var total = list.Sum();
+            var centralValIndex = total / 2;
+            var cumsum = list[0];
+            var MedianDistance = 0;
+            for (var i = 1; i < list.Count; i++)
+            {
+                cumsum += list[i];
+                if (cumsum > centralValIndex) return i;
+            }
+            return MedianDistance;
+        }
         public static float MedianMat(Mat matrix)
         {
             var numOfValues = matrix.Height * matrix.Width;

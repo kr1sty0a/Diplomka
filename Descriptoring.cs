@@ -3,7 +3,9 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using System.Linq.Expressions;
+using System.Net.Sockets;
 using log4net;
+using log4net.DateFormatter;
 using OpenCvSharp;
 using OpenCvSharp.CPlusPlus;
 
@@ -15,10 +17,13 @@ namespace OpenCVSharpSandbox
         public static OrbParameters orbParameters = new OrbParameters(1200, 1.2f, 8, 50, 1, 2, ORBScore.Fast);
 
         //public static readonly ORB orb = new ORB(1200, 1.2f, 8, 50, 1, 2, ORBScore.Fast);
-        private static int FastThreshold = 35;
-        private static int levelPyr = 1;
+        public static int FastThreshold = 35;
+        public static int levelPyr = 1;
         private static readonly ILog Logger = LogManager.GetLogger(typeof(Program));
         private static float thresholdForDistance = 0.9f;
+        public static bool fastBool = true;
+        public static BRISK brisk = new BRISK();
+      
 
         public struct DescriptorsAndKeypoints
         {
@@ -47,8 +52,8 @@ namespace OpenCVSharpSandbox
 
         internal static void briefTwoImgs(Mat img1, Mat img2)
         {
-            var result = ComputeBriefWithFast(img1, 15, 1);
-            var result2 = ComputeBriefWithFast(img2, 15, 1);
+            var result = ComputeBriefWithFast(img1, 1);
+            var result2 = ComputeBriefWithFast(img2, 1);
             var koeficients = MatchAndValidate(result.Descriptors, result2.Descriptors, result.Points, result2.Points);
             var outImg = new Mat();
             Cv2.DrawMatches(img1, result.Points, img2, result2.Points, koeficients.Matches, outImg);
@@ -125,26 +130,118 @@ namespace OpenCVSharpSandbox
         {
             var valid = 0;
             var invalid = 0;
+            var shiftValid = new List<List<float>>();
+            var shiftInvalid = new List<List<float>>();
+            var shiftVectorsValid = new List<Vec2f>();
+            var shiftVectorsInvalid = new List<Vec2f>();
+            var Points1 = points1.Select(x => x.Pt).ToArray();
             for (var i = 0; i < matches.Length; i++)
             {
-                var point1 = points1[i].Pt;
+                var point1 = Points1[i];
+                Cv2.Circle(imgs.img1, point1, 1,new Scalar(255,0,0) );
                 var point2 = points2[matches[i][0].TrainIdx].Pt;
+                Cv2.Circle(imgs.img1, point2, 1, new Scalar(0, 0, 255));
+                Cv2.Line(imgs.img1, point1,point2, new Scalar(255,255,0));
                 var distOfMatchedPoints = point1.DistanceTo(point2);
                 if (distOfMatchedPoints < 10)
                 {
                     valid += 1;
+                    shiftValid.Add(new List<float>() { ComputeSlope(point1, point2), (float)distOfMatchedPoints });
+                    shiftVectorsValid.Add(GetShiftVector(point1, point2));
                 }
                 else
                 {
                     invalid += 1;
+                    shiftInvalid.Add(new List<float>() { ComputeSlope(point1, point2), (float)distOfMatchedPoints });
+                    shiftVectorsInvalid.Add(GetShiftVector(point1, point2));
                 }
+            }
+            var validationKoeficient = (double)valid / ((double)valid + (double)invalid);
+            var collection = shiftInvalid.ToArray();
+            if (validationKoeficient < 0.5)
+            {
+                var averageSlope = shiftInvalid.Select(x => x[0]).Average();
+                //var Slope = shiftInvalid.Select(x => (double)x[0]).ToArray();
+                var averageShift = shiftInvalid.Select(x => x[1]).Average();
+                //var Shift = shiftInvalid.Select(x => (double)x[1]).ToArray();
+                //var std = StdDev(Slope);
+                //var std2 = StdDev(Shift);
+                var averageShiftVector =
+                    shiftVectorsInvalid.Select(
+                        x =>
+                            new Point2f(shiftVectorsInvalid.Select(y => y.Item0).Average(), shiftVectorsInvalid.Select(y => y.Item1).Average())).First();
+                var test =
+                    shiftInvalid.Where(x => (x[0] < averageSlope + 1)&& (x[0] > (averageSlope - 1)))
+                        .Select(x => x)
+                        .ToArray().Length;
+                if (test > 0.9*shiftInvalid.Count)
+                {
+                    Logger.Warn("Image was verified but camera might not be calibrated properly.Trying to compensate");
+
+                }
+
+                var Points1Compensation =
+                    Points1.Select(x => new Point2f(x.X + 8*averageShiftVector.X, x.Y + averageShiftVector.Y))
+                        .ToArray();
+                valid = 0;
+                invalid = 0;
+                for (var i = 0; i < matches.Length; i++)
+                {
+                    var point1 = Points1Compensation[i];
+                    Cv2.Circle(imgs.img1, point1, 1, new Scalar(0, 255, 0));
+                    var point2 = points2[matches[i][0].TrainIdx].Pt;
+                    var distOfMatchedPoints = point1.DistanceTo(point2);
+                    
+                    if (distOfMatchedPoints < 10)
+                    {
+                        valid += 1;
+                    }
+                    else
+                    {
+                        invalid += 1;
+                        shiftInvalid.Add(new List<float>() { ComputeSlope(point1, point2), (float)distOfMatchedPoints });
+                    }
+                    
+                }
+                if (valid > invalid)
+                {
+                    Logger.Info("Compensation was successful, match was verified");
+                }
+                averageShift = shiftInvalid.Select(x => x[1]).Average();
+                //var res = test.Where(
+                //    x =>
+                //        (x[1] < averageShift + 30 )&&(x[1] > averageShift - 30)).
+                //        Select(x => x).ToArray();
             }
             return (double) valid/((double) valid + (double) invalid);
         }
+
+        public static double StdDev(double[] values)
+        {
+            double ret = 0;
+            int count = values.Count();
+            if (count > 1)
+            {
+                //Compute the Average
+                double avg = values.Average();
+
+                //Perform the Sum of (value-avg)^2
+                double sum = values.Sum(d => (d - avg) * (d - avg));
+
+                //Put it all together
+                ret = Math.Sqrt(sum / count);
+            }
+            return ret;
+        }
+
         internal static double MatchValidator(DMatch[] matches, KeyPoint[] points1, KeyPoint[] points2)
         {
             var valid = 0;
             var invalid = 0;
+            var shiftValid = new List<List<float>>();
+            var shiftInvalid = new List<List<float>>();
+            var shiftVectors = new List<Vec2f>();
+
             for (var i = 0; i < matches.Length; i++)
             {
                 var point1 = points1[i].Pt;
@@ -153,13 +250,29 @@ namespace OpenCVSharpSandbox
                 if (distOfMatchedPoints < 10)
                 {
                     valid += 1;
+                    shiftValid.Add(new List<float>(){ ComputeSlope(point1, point2) , (float)distOfMatchedPoints});
+                    shiftVectors.Add(GetShiftVector(point1, point2));
                 }
                 else
                 {
                     invalid += 1;
+                    shiftInvalid.Add(new List<float>() { ComputeSlope(point1, point2), (float)distOfMatchedPoints });
+                    shiftVectors.Add(GetShiftVector(point1, point2));
                 }
             }
             return (double)valid / ((double)valid + (double)invalid);
+        }
+
+        public static float ComputeSlope(Point2f point1, Point2f point2)
+        {
+            var slope = Math.Abs(point1.Y - point2.Y)/Math.Abs(point1.X - point2.X);
+            return slope;
+        }
+
+        public static Vec2f GetShiftVector(Point2f point1, Point2f point2)
+        {
+            var vector = new Vec2f(point2.X - point1.X, point2.Y - point1.Y);
+            return vector;
         }
 
         public static double AverageDistanceOfMatchedDescriptors(DMatch[][] matches)
@@ -278,7 +391,7 @@ namespace OpenCVSharpSandbox
         internal static ResultFromMatching MatchAndValidate(Mat Descriptor1, Mat Descriptor2, KeyPoint[] Points1,
             KeyPoint[] Points2)
         {
-            var bfmatcher = new BFMatcher(NormType.Hamming,true);
+            var bfmatcher = new BFMatcher(NormType.Hamming);
             var matches = bfmatcher.KnnMatch(Descriptor1, Descriptor2, 2);
             var validRatio = MatchValidator(matches, Points1, Points2);
             var distanceOfMatchedDescriptors = AverageDistanceOfMatchedDescriptors(matches);
@@ -290,20 +403,33 @@ namespace OpenCVSharpSandbox
                 MatchesKnn = matches,
                 RatioCoeficient = vasekValidace
             };
+
         }
 
-        internal static DescriptorsAndKeypoints ComputeBriefWithFast(Mat img, int fastThreshold, int levelImgPyr)
+        internal static DescriptorsAndKeypoints ComputeBriefWithFast(Mat img, int levelImgPyr)
         {
             Cv2.CvtColor(img, img, ColorConversion.RgbToGray);
             img = HelperOperations.ReturnImgFromNextLevPyr(img, levelImgPyr, 0.5f);
             KeyPoint[] points;
-            Cv2.FAST(img, out points, fastThreshold, true);
+            Cv2.FAST(img, out points, FastThreshold, fastBool);
             var brief = new BriefDescriptorExtractor(64);
             var descriptors = new Mat();
             brief.Compute(img, ref points, descriptors);
-            img.Dispose();
-            brief.Dispose();
+            //img.Dispose();
+            //brief.Dispose();
             return new DescriptorsAndKeypoints {Descriptors = descriptors, Points = points};
+        }
+        internal static DescriptorsAndKeypoints ComputeBrief(Mat img)
+        {
+            KeyPoint[] points;
+            var fast = new FastFeatureDetector(35);
+            points = fast.Detect(img);
+            var brief = new BriefDescriptorExtractor(64);
+            var descriptors = new Mat();
+            brief.Compute(img, ref points, descriptors);
+            //img.Dispose();
+            //brief.Dispose();
+            return new DescriptorsAndKeypoints { Descriptors = descriptors, Points = points };
         }
 
         internal static DescriptorsAndKeypoints ComputeOrb(Mat img, ORB orb)
@@ -318,8 +444,7 @@ namespace OpenCVSharpSandbox
         internal static DescriptorsAndKeypoints ComputeBrisk(Mat img)
         {
             try
-            {
-                var brisk = new BRISK();
+            { 
                 var descriptors = new Mat();
                 KeyPoint[] points;
                 points = brisk.Detect(img);
@@ -345,7 +470,7 @@ namespace OpenCVSharpSandbox
             }
             else if (method == Methods.BRIEF)
             {
-                result = ComputeBriefWithFast(img, FastThreshold, levelPyr);
+                result = ComputeBriefWithFast(img,levelPyr);
             }
             else if (method == Methods.BRISK)
             {

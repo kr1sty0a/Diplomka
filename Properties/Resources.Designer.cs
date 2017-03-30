@@ -59,5 +59,41 @@ namespace OpenCVSharpSandbox.Properties {
                 resourceCulture = value;
             }
         }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to @&quot;C:\Users\labudova\Documents\diplomka\References&quot;.
+        /// </summary>
+        internal static string RefFolder {
+            get {
+                return ResourceManager.GetString("RefFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to @&quot;C:\RQA\imgs\References&quot;.
+        /// </summary>
+        internal static string ResourcesRQA {
+            get {
+                return ResourceManager.GetString("ResourcesRQA", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to @&quot;C:\Users\labudova\Documents\diplomka\ImagesForTesting&quot;.
+        /// </summary>
+        internal static string TestFolder {
+            get {
+                return ResourceManager.GetString("TestFolder", resourceCulture);
+            }
+        }
+        
+        /// <summary>
+        ///   Looks up a localized string similar to @&quot;C:\Users\labudova\Documents\diplomka\vysledky_analyz&quot;.
+        /// </summary>
+        internal static string WriteFolder {
+            get {
+                return ResourceManager.GetString("WriteFolder", resourceCulture);
+            }
+        }
     }
 }

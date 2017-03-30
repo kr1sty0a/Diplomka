@@ -25,12 +25,14 @@ namespace OpenCVSharpSandbox
             Match,
             Flann
         }
+        public string path = Path.Combine(Images.TestFolder, "Konica Minolta", "C364", "5.0.34.1");
+        private int screenSelected = 4;
 
         public void OrbOptimalization()
         {
             StringBuilder csv = new StringBuilder();
-            var path = Path.Combine(Images.TestFolder, "Konica Minolta", "C364", "5.0.34.1");
-            var screenSelected = 4;
+           
+            
 
 
 
@@ -359,7 +361,70 @@ namespace OpenCVSharpSandbox
             //}
         }
 
-        public void MatchTiming(MatcherType method, int numberOfKeypoints)
+        public void BriefOptimalization()
+        {
+            StringBuilder csv = new StringBuilder();
+            csv.AppendLine(
+                                "image,Distance of Match, Distance of KnnMatch, Koeficient computed from KnnMatch, " +
+                                "Valid ratio computed from knnMatch, Ratio of desc with small distance, cross matches");
+            bool[] nonMaxSupressionBools = {true, false};
+            //foreach (bool nonmaxSupr in nonMaxSupressionBools)
+            //{
+            for (var k = 15; k < 66; k += 5)
+            {
+                //for (var i = 1; i < 4; i++)
+                //{
+
+                var nonmaxSupr = true;
+                //var k = 35;
+                /*var i = 2;*/ /*{*/
+
+                if (k < 45 | nonmaxSupr == false)
+                {
+
+                    Descriptoring.FastThreshold = k;
+                    Descriptoring.fastBool = nonmaxSupr;
+                    Descriptoring.levelPyr = 1;
+                    var Imgs = new Images();
+                    var testImgs = Imgs.GetAllTestImages(Descriptoring.Methods.BRIEF, path);
+                    var sameImgs =
+                        testImgs.Where(x => x.ScreenId == screenSelected).Select(x => x).ToArray();
+                    var diffImgs =
+                        testImgs.Where(x => x.ScreenId != screenSelected).Select(x => x).ToArray();
+                    csv.AppendLine(
+                        $"nonMaxSupr: {nonmaxSupr}, Fast threshold: {Descriptoring.FastThreshold}, level of image pyramid: {Descriptoring.levelPyr}");
+                    for (var l = 1; l < sameImgs.Length; l++)
+                    {
+                        var result = Descriptoring.MatchAndValidate(sameImgs[0], sameImgs[l]);
+                        csv.AppendLine(
+                            $"{sameImgs[l].path},{result.DistanceOfMatchedDescriptors},{result.DistanceOfMatchedDescriptorsKnn}," +
+                            $"{result.RatioCoeficient},{result.ValidRatio},{result.RatioDist},{result.RatioCross}");
+                    }
+
+
+                    csv.AppendLine("different images");
+                    foreach (var diffImg in diffImgs)
+                    {
+                        var result = Descriptoring.MatchAndValidate(sameImgs[0], diffImg);
+                        csv.AppendLine(
+                            $"{diffImg.path},{result.DistanceOfMatchedDescriptors},{result.DistanceOfMatchedDescriptorsKnn}," +
+                            $"{result.RatioCoeficient},{result.ValidRatio},{result.RatioDist},{result.RatioCross}");
+                    }
+
+
+                
+            
+        
+            
+            }
+                }
+            var date = System.DateTime.Now;
+            var pathResult = Path.Combine(Images.WriteFolder, $"BRIEF_{date:d-M-yyyy h-m}.csv");
+            File.WriteAllText(pathResult, csv.ToString());
+        }
+
+        public
+            void MatchTiming(MatcherType method, int numberOfKeypoints)
         {
             Descriptoring.orbParameters = new OrbParameters(numberOfKeypoints, 1.2f, 8, 50, 1, 2, ORBScore.Fast);
             var path = Path.Combine(Images.TestFolder, "Konica Minolta", "C364", "5.0.34.1");
@@ -386,16 +451,35 @@ namespace OpenCVSharpSandbox
             }
             else if (method == MatcherType.Flann)
             {
-                //for (var i = 1; i < testImgs.Length; i++)
-                //{
-                //    var matcher = new FlannBasedMatcher(new IndexParams(), new SearchParams());
-                //    matcher.Match(testImgs[0].Descriptors, testImgs[i].Descriptors);
-                //}
                 throw new NotImplementedException();
             }
             timer.Stop();
             Logger.Info($"Elapsed time: {timer.ElapsedMilliseconds} ");
         }
+
+        public void BriskOptimalization()
+        {
+            for (var i = 10; i < 80; i++)
+            {
+                for (var j = 0; j < 7; j++)
+                {
+                    for (var k = 0.5f; k < 5; k =k +0.5f)
+                    {
+                        Descriptoring.brisk = new BRISK(30, 3, 1f);
+                        var path = Path.Combine(Images.TestFolder, "Konica Minolta", "C364", "5.0.34.1");
+                        var Imgs = new Images();
+                        var testImgs = Imgs.GetAllTestImages(Descriptoring.Methods.BRISK, path);
+                        for (var l = 1; l < testImgs.Length; l++)
+                        {
+                            Descriptoring.MatchAndValidate(testImgs[0], testImgs[l]);
+                        }
+                    }
+                }
+            }
+            
+
+        }
+            
 
     }
 }
