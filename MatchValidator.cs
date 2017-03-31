@@ -46,22 +46,11 @@ namespace OpenCVSharpSandbox
                 {
                     Logger.Warn("Camera is might not be calibrated properly");
                     Logger.Info("Trying to compensate shift");
-                    var invalidSlope = Validator.Where(x => x.valid == false).Select(x => x.ComputeSlope()).ToArray();
-                    var averageSlope = invalidSlope.Average();
-                    var calibrationCheck =
-                        Validator.Where(
-                                x => (x.ComputeSlope() < averageSlope + 1) && (x.ComputeSlope() > (averageSlope - 1)))
-                            .Select(x => x.ShiftVector)
-                            .ToArray();
-                    var averageShiftVector =
-                        calibrationCheck.Select(
-                            x =>
-                                new Vec2f(calibrationCheck.Select(y => y.Item0).Average(),
-                                    calibrationCheck.Select(y => y.Item1).Average())).First();
+                    var averageShiftVector = GetAverageShiftVector(Validator);
                     var Points1 = points1.Select(x => x.Pt).ToArray();
                     var Points1Compensation =
                         Points1.Select(
-                                x => new Point2f(x.X + 8*averageShiftVector.Item0, x.Y + averageShiftVector.Item1))
+                                x => new Point2f(x.X + averageShiftVector.Item0, x.Y + averageShiftVector.Item1))
                             .ToArray();
                     var newPoints1 = Points1Compensation.Select(x => new KeyPoint(x.X, x.Y, 1.0f)).ToArray();
                     var Validator2Round = MatchValidation(matches, newPoints1, points2);
@@ -128,6 +117,25 @@ namespace OpenCVSharpSandbox
             var calProb = (float)calibrationCheck.Length / (float)invalid.Length;
             return calProb > 0.8;
 
+        }
+
+        public static Vec2f GetAverageShiftVector(MatchValidator[] validator)
+        {
+            var averageSlope = validator.Where(x => x.valid == false).Select(x => x.ComputeSlope()).ToArray().Average();
+            var Distance = validator.Where(x => x.valid == false).Select(x => x.GetLengthOfVector()).ToArray();
+            var averageDistance = HelperOperations.MedianArray(Distance);
+            var calibrationCheckSlope =
+                validator.Where(
+                        x => ((x.ComputeSlope() < averageSlope + 1) && (x.ComputeSlope() > (averageSlope - 1)))&&
+                        (((x.GetLengthOfVector()< averageDistance + 10) && (x.GetLengthOfVector() > averageDistance - 10))))
+                    .Select(x => x.ShiftVector)
+                    .ToArray();
+            var averageShiftVector =
+                calibrationCheckSlope.Select(
+                    x =>
+                        new Vec2f(calibrationCheckSlope.Select(y => y.Item0).Average(),
+                            calibrationCheckSlope.Select(y => y.Item1).Average())).First();
+            return averageShiftVector;
         }
     }
 }
