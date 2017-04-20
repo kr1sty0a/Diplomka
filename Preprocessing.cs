@@ -4,7 +4,7 @@ using OpenCvSharp.CPlusPlus;
 
 namespace OpenCVSharpSandbox
 {
-    class Preprocessing
+    public class Preprocessing
     {
         private static void SharpenImage(ref Mat img)
         {
@@ -221,7 +221,7 @@ namespace OpenCVSharpSandbox
             }
         }
 
-        internal static void NormaliseByChannels(ref Mat matrix)
+        public static void NormaliseByChannels(ref Mat matrix)
         {
             Mat[] planes;
             Cv2.Split(matrix, out planes);

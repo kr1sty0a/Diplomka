@@ -152,22 +152,15 @@ namespace OpenCVSharpSandbox
             }
             Cv2.ImShow("detected lines", edges);
         }
-        public static void FindIcon(Mat img, Mat refImg)
-        {/*
-             Input: img: analyzed image
-                    refImg: reference image we try to find in analyzed image
-            */
-            Stopwatch stopwatch = new Stopwatch();
-            stopwatch.Start();
-            Cv2.CvtColor(refImg, refImg, ColorConversion.RgbToGray);
-
+        public static void IconFinder(Mat img, Mat refImg)
+        {
             KeyPoint[] points;
-            Cv2.FAST(refImg, out points, 15, true);
+            var detector = new FastFeatureDetector(15,false);
+            points = detector.Detect(refImg);
 
-
-            Cv2.CvtColor(img, img, ColorConversion.RgbToGray);
             KeyPoint[] points2;
-            Cv2.FAST(img, out points2, 15, true);
+            var detector2 = new FastFeatureDetector(15,false);
+            points2 = detector2.Detect(img);
             var brief = new BriefDescriptorExtractor(64);
             var descriptors = new Mat();
             brief.Compute(refImg, ref points, descriptors);
@@ -177,39 +170,48 @@ namespace OpenCVSharpSandbox
             brief2.Compute(img, ref points2, descriptors2);
 
             var bfmatcher = new BFMatcher(NormType.Hamming);
-            var matches = bfmatcher.KnnMatch(descriptors, descriptors2, 1);
-
-
+            var matches = bfmatcher.Match(descriptors, descriptors2);
 
             var outImg = new Mat();
             Cv2.DrawMatches(refImg, points, img, points2, matches, outImg);
-
-            var bodLoc = SubmatrixLocation(matches, points, points2);
-            stopwatch.Stop();
-            Console.WriteLine(stopwatch.ElapsedMilliseconds.ToString());
-            if (bodLoc.Item2 == true)
-            {
-                Cv2.Circle(img, bodLoc.Item1, 5, new Scalar(255), thickness: 5);
-                Cv2.Circle(img, bodLoc.Item1, 50, new Scalar(255), thickness: 5);
-
-                Cv2.ImShow("lokace", img);
-                Cv2.ImShow("vysledek", outImg);
-                Cv2.WaitKey();
-            }
-            else Console.WriteLine("location was not found");
-
-            Console.ReadKey();
+            var location = GetIconLocation(matches, points, points2);
         }
+
+        private static Point2f GetIconLocation(DMatch[] matches, KeyPoint[] points1, KeyPoint[] points2) {
+            var Validator = new MatchValidator[matches.Length];
+            for (var i = 0; i < matches.Length; i++) {
+                var point1 = points1[i].Pt;
+                var point2 = points2[matches[i].TrainIdx].Pt;
+                Validator[i] = new MatchValidator();
+                Validator[i].pointImg1 = point1;
+                Validator[i].pointImg2 = point2;
+                Validator[i].GetShiftVector(point1, point2);
+            }
+            // stage 1:
+            var averageVec = MatchValidator.GetAverageShiftVector(Validator);
+            var averageSlope = averageVec.Item1 / averageVec.Item0;
+            var correctSlope = Validator.Where(
+                        x => ((x.ComputeSlope() < averageSlope + 0.02) && (x.ComputeSlope() > (averageSlope - 0.02))))
+                        .Select(x => x)
+                    .ToArray();
+            var averageDistance = correctSlope.Select(x => x.GetLengthOfVector()).Average();
+            var correctDistanceAndSlope =
+                correctSlope.Where(x => (x.GetLengthOfVector() > (averageDistance - 10)) && (x.GetLengthOfVector() < (averageDistance + 10))).Select(x=>x).ToArray();
+            var validatedPoints =
+                correctDistanceAndSlope.Select(
+                        x => new Point2f(correctDistanceAndSlope.Select(y => y.pointImg2.X).Average(), correctDistanceAndSlope.Select(z => z.pointImg2.Y).Average())).First();
+            return validatedPoints;
+        }
+
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="matches"></param>  Matches of reference and analyzed image keypoints
+        /// <param name="points1"></param> keypoints found in analyzed image
+        /// <param name="points2"></param> 
+        /// <returns></returns>  Location of reference in analyzed image,  bool: true: location was found with sufficient probability, false: location was not found
         private static Tuple<Point, bool> SubmatrixLocation(DMatch[][] matches, KeyPoint[] points1, KeyPoint[] points2)
         {
-            /* 
-            Input: matches: Matches of reference and analyzed image keypoints
-                   points: keypoints found in analyzed image
-            Output: Tuple<Point, bool>
-                    Point: Location of reference in analyzed image
-                    bool: true: location was found with sufficient probability
-                          false: location was not found
-            */
             var Coordinates = new Point2f[matches.Length];
             var distances = new double[matches.Length];
 
@@ -222,11 +224,9 @@ namespace OpenCVSharpSandbox
                 sumy += point.Y;
                 Coordinates[i] = new Point2f(point.X, point.Y);
             }
-
             var xLoc = sumx / matches.Length;
             var yLoc = sumy / matches.Length;
             var pointLoc = new Point(xLoc, yLoc);
-
 
             for (var i = 0; i < matches.Count(); i++)
             {

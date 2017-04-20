@@ -13,8 +13,7 @@ namespace OpenCVSharpSandbox
         private static ORBScore scoretype;
 
 
-        public OrbParameters(int Nfeatures, float ScaleFactor, int PLevels, int EdgeThresh, int FirstLevel, int WTak, ORBScore ScoreType)
-        {
+        public OrbParameters(int Nfeatures, float ScaleFactor, int PLevels, int EdgeThresh, int FirstLevel, int WTak, ORBScore ScoreType) {
             nFeatures = Nfeatures;
             scaleFactor = ScaleFactor;
             pLevels = PLevels;
@@ -24,19 +23,17 @@ namespace OpenCVSharpSandbox
             scoretype = ScoreType;
         }
 
-        public ORB Create()
-        {
+        public ORB Create() {
             return new ORB(nFeatures, scaleFactor, pLevels, edgeThresh, firstLevel, wTak, scoretype);
         }
 
-        public new string ToString()
-            {
+        public new string ToString() {
             var OrbParametersString = "Nfeatures: " + nFeatures + ", ScaleFactor: " +
                                       scaleFactor + ", PLevels: " + pLevels + ", EdgeThresh: " +
                                       edgeThresh +
                                       ", FirstLevel: " + firstLevel + ", WTak: " + wTak +
                                       ", ScoreType: " + scoretype;
             return OrbParametersString;
-            }
         }
     }
+}

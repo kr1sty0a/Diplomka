@@ -5,10 +5,10 @@ using OpenCvSharp.CPlusPlus;
 
 namespace OpenCVSharpSandbox
 {
-    class MatchValidator
+    public class MatchValidator
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(Program));
-        private Vec2f ShiftVector;
+        public Vec2f ShiftVector;
         private bool valid;
         public Point2f pointImg1;
         public Point2f pointImg2;
@@ -31,17 +31,19 @@ namespace OpenCVSharpSandbox
             return Validator;
         }
 
-        internal static void Validate(DMatch[] matches, KeyPoint[] points1, KeyPoint[] points2)
+        public static int Validate(DMatch[] matches, KeyPoint[] points1, KeyPoint[] points2)
         {
             var Validator = MatchValidation(matches, points1, points2);
             var validationKoeficient = GetValidationKoef(Validator);
             if (validationKoeficient > 0.5)
             {
                 Logger.Info("Image was verified");
+                return 0;
             }
             else
             {
                 Logger.Info("Image was not verified");
+                var result = 3;
                 if (CheckCalibration(Validator))
                 {
                     Logger.Warn("Camera is might not be calibrated properly");
@@ -59,21 +61,24 @@ namespace OpenCVSharpSandbox
                     {
                         Logger.Info("Image was verified on second round");
                         Logger.Info("Recalibrating camera...");
+                        result = 1;
                     }
                     else
                     {
                         Logger.Error("Image was not verified, compensation was not successful");
+                        result = 2;
                     }
-                    for (var i = 0; i < Validator.Length; i++)
-                    {
-                        Cv2.Circle(imgs.img1, Validator[i].pointImg1, 1, new Scalar(255, 255, 0));
-                        Cv2.Circle(imgs.img1, Validator[i].pointImg2, 1, new Scalar(0, 255, 0));
-                        Cv2.Circle(imgs.img1, Validator2Round[i].pointImg1, 1, new Scalar(0, 0, 255));
-                    }
-
+                    //for (var i = 0; i < Validator.Length; i++)
+                    //{
+                    //    Cv2.Circle(imgs.img1, Validator[i].pointImg1, 2, Scalar.AliceBlue);
+                    //    Cv2.Circle(imgs.img1, Validator[i].pointImg2, 2, Scalar.Coral);
+                    //    Cv2.Line(imgs.img1, Validator[i].pointImg1, Validator[i].pointImg2,Scalar.Ivory, thickness: 2);
+                    //    Cv2.Circle(imgs.img1, Validator2Round[i].pointImg1, 2, Scalar.Ivory);
+                    //    Cv2.Line(imgs.img1, Validator2Round[i].pointImg1, Validator[i].pointImg1, Scalar.MediumVioletRed,thickness:2);
+                    //}
                 }
+                return result;
             }
-
         }
 
         public static float ComputeSlope(Point2f point1, Point2f point2)

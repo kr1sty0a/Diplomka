@@ -1,10 +1,6 @@
-﻿using System.Collections.Generic;
-using System.Drawing;
-using System.Linq;
-using OpenCvSharp;
+﻿using OpenCvSharp;
 using OpenCvSharp.CPlusPlus;
 using log4net;
-using MoreLinq;
 using Size = OpenCvSharp.CPlusPlus.Size;
 
 
@@ -17,31 +13,61 @@ namespace OpenCVSharpSandbox
         private static readonly ILog Logger = LogManager.GetLogger(typeof(Program));
         //public static string ReferenceFolder = Properties.Resources.ResourcesRQA;
         //public static string TestingFolder = Properties.Resources.TestFolder;
-        public static void Main(string[] args)
-        {
-            
-            Preprocessing.NormaliseByChannels(ref imgs.img2);
-            var result1 = Descriptoring.ComputeBrief(imgs.img1);
-            var result2 = Descriptoring.ComputeBrief(imgs.img2);
-            var bfmatcher = new BFMatcher(NormType.Hamming);
-            var matches = bfmatcher.Match(result1.Descriptors, result2.Descriptors);
-            
-            MatchValidator.Validate(matches, result1.Points, result2.Points);
-            //var imgOut = new Mat();
-            //Cv2.DrawMatches(imgs.img1, result1.Points, imgs.img2, result2.Points, matches, imgOut);
-            //Cv2.ImShow("obr", imgOut);
-            Cv2.ImShow("compensation",imgs.img1);
-            Cv2.WaitKey();
+        public static void Main(string[] args) {
+            var img = Cv2.ImRead(@"C:\Users\labudova\Documents\diplomka\black_screen.png");
+            var imgPyr = new Mat();
+            Cv2.PyrDown(img, imgPyr);
+            KeyPoint[] points;
+            var detector = new FastFeatureDetector(35);
+            points = detector.Detect(imgPyr);
+
+            //Visualisation.DrawBriefPoints();
+
+
+            //var opt = new Optimalization();
+            //opt.BriefOptimalization();
+            //opt.BriskOptimalization2();
+
+
+
+            //var img = Cv2.ImRead(@"C:\Users\labudova\Downloads\OnlyPin.png");
+            //var icon = Cv2.ImRead(@"c:\Users\labudova\Downloads\ButtonFinding_1888.png");
+            //ImgAnalyse.IconFinder(img, icon);
+
+
+            //var imgs = new Images();
+            //var adaptiveEv = new AdaptiveEvaluation();
+            //var result = adaptiveEv.GetDistanceThreshold(imgs.GetAllRefImages(Descriptoring.Methods.BRIEF));
+            //var unsuccessful = result.Where(x => x.threshold == -1).Select(x => x).ToArray();
+            //var smallDiff = result.Where(x => x.threshold == -2).Select(x => x).ToArray();
+            //var imgs2 = new Images();
+            //var adaptiveEv2 = new AdaptiveEvaluation();
+            //var result2 = adaptiveEv2.GetKoeficientThreshold(imgs2.GetAllRefImages(Descriptoring.Methods.BRIEF));
+            //var unsuccessful2 = result.Where(x => x.threshold == -1).Select(x => x).ToArray();
+            //var smallDiff2 = result.Where(x => x.threshold == -2).Select(x => x).ToArray();
+
+            //Preprocessing.NormaliseByChannels(ref imgs.img2);
+            //var result1 = Descriptoring.ComputeBrief(imgs.img1);
+            //var result2 = Descriptoring.ComputeBrief(imgs.img2);
+            //var bfmatcher = new BFMatcher(NormType.Hamming);
+            //var matches = bfmatcher.Match(result1.Descriptors, result2.Descriptors);
+
+            //MatchValidator.Validate(matches, result1.Points, result2.Points);
+            ////var imgOut = new Mat();
+            ////Cv2.DrawMatches(imgs.img1, result1.Points, imgs.img2, result2.Points, matches, imgOut);
+            ////Cv2.ImShow("obr", imgOut);
+            //Cv2.ImShow("compensation", imgs.img1);
+            //Cv2.WaitKey();
 
 
 
             //var evaluation = new ImageEvaluation();
             //evaluation.EvaluateAll();
-            //var opt = new Optimalization();
-            //opt.OrbOptimalization();
+            var opt = new Optimalization();
+            opt.OrbOptimalization();
             //opt.BriefOptimalization();
 
-            //opt.MatchTiming(Optimalization.MatcherType.Match,1500);
+            //opt.MatchTiming(Optimalization.MatcherType.Knn,1500);
             //opt.MatchTiming(Optimalization.MatcherType.Knn,1500);
             //opt.MatchTiming(Optimalization.MatcherType.Flann,500);
             //var img = new Images();

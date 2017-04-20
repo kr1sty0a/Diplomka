@@ -127,6 +127,7 @@
     <Reference Include="WindowsBase" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="AdaptiveEvaluation.cs" />
     <Compile Include="cameraCalibration.cs" />
     <Compile Include="Descriptoring.cs" />
     <Compile Include="HelperOperations.cs" />
@@ -147,6 +148,7 @@
     </Compile>
     <Compile Include="Quality.cs" />
     <Compile Include="UnitTests.cs" />
+    <Compile Include="Visualisation.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config">

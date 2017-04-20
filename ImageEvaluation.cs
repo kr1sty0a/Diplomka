@@ -2,28 +2,26 @@
 using System.IO;
 using System.Linq;
 using System.Text;
-using System.Windows.Controls.Primitives;
-using System.Windows.Forms;
 using log4net;
-using log4net.Repository.Hierarchy;
-using MoreLinq;
 using OpenCvSharp;
 using OpenCvSharp.CPlusPlus;
 
 namespace OpenCVSharpSandbox
 {
-    class ImageEvaluation
+    public class ImageEvaluation
     {
         private static readonly ILog Logger = LogManager.GetLogger(typeof(Program));
-        private enum Status
+
+        public enum Status
         {
             Fail,
             Ok
         };
+
         public const float TresholdForValidationKoef = 0.001f;
         private const int ThresholdForValidationDist = 54;
 
-        private struct Pairs
+        public struct Pairs
         {
             public Images TestImg;
             public Images RefImg;
@@ -31,7 +29,7 @@ namespace OpenCVSharpSandbox
             public DMatch[][] matchesKnn;
         }
 
-        private struct ReferenceFound
+        public struct ReferenceFound
         {
             public Pairs BestMatchKoef;
             public Pairs BestMatchDist;
@@ -39,7 +37,7 @@ namespace OpenCVSharpSandbox
             public Status StatusDist;
             public float MaxKoef;
             public float MinDist;
-            
+
         }
 
         private struct ReferenceValidation
@@ -54,13 +52,13 @@ namespace OpenCVSharpSandbox
         private const string FirstLine =
             "Evaluated file path, Maximal koeficient, Result based on maximal koeficient, status koef without validation, Validation, status," +
             " Minimal distance, Result based on Minimal distance, status distance without validation, Validation, Status, Reference file found";
+
         private const string FirstLineSimple = "Evaluated file path, Maximal koeficient, Result based on maximal koeficient, status koef without" +
                                                " validation, Minimal distance, Result based on Minimal distance, Status, Reference file found";
 
         public StringBuilder csv = new StringBuilder();
 
-        public void EvaluateAll(bool simple = false)
-        {
+        public void EvaluateAll(bool simple = false) {
             csv.AppendLine(simple ? FirstLineSimple : FirstLine);
             var images = new Images();
             Images[] refImgCollection = images.GetAllRefImages(Descriptoring.Methods.BRIEF);
@@ -74,24 +72,25 @@ namespace OpenCVSharpSandbox
             var evaluation = new ImageEvaluation();
             var listSpecificity = new List<double>();
             var listSensitivity = new List<double>();
-            foreach (var i in Devices)
-            {
-                foreach (var j in Versions)
-                {
+            foreach (var i in Devices) {
+                foreach (var j in Versions) {
                     Quality valuesQuality;
-                    if (simple)
-                    {
-                        valuesQuality = evaluation.EvaluateImageCollectionSimple(i, j, refImgCollection,
+                    if (simple) {
+                        valuesQuality = evaluation.EvaluateImageCollectionSimple(i,
+                            j,
+                            refImgCollection,
                             testImgCollection);
                     }
-                    else
-                    {
-                        valuesQuality = evaluation.EvaluateImageCollection(i, j, refImgCollection,
+                    else {
+                        valuesQuality = evaluation.EvaluateImageCollection(i,
+                            j,
+                            refImgCollection,
                             testImgCollection);
                     }
                     listSpecificity.Add(valuesQuality.GetSpecificity());
                     listSensitivity.Add(valuesQuality.GetSensitivity());
-                    Logger.Info($"Method: {Descriptoring.orbParameters.ToString()}, Device {i}, Version {j} Sensitivity: {valuesQuality.GetSensitivity()}, Specificity: {valuesQuality.GetSpecificity()}");
+                    Logger.Info(
+                        $"Method: {Descriptoring.orbParameters.ToString()}, Device {i}, Version {j} Sensitivity: {valuesQuality.GetSensitivity()}, Specificity: {valuesQuality.GetSpecificity()}");
                 }
             }
             var specificity = listSpecificity.Average();
@@ -101,62 +100,52 @@ namespace OpenCVSharpSandbox
 
 
         public Quality EvaluateImageCollection(string device, string version, Images[] refImgCollection,
-            Images[] testImgCollection)
-        {
-            var qa = new Quality(0,0,0,0);
+                                               Images[] testImgCollection) {
+            var qa = new Quality(0, 0, 0, 0);
             csv.AppendLine($"{Descriptoring.orbParameters}, Device: {device}, Version: {version}");
             var refImgs =
                 refImgCollection.Where(x => x.Device == device && x.Version == version).Select(x => x).ToArray();
             var testImgs =
                 testImgCollection.Where(x => x.Device == device && x.Version == version).Select(x => x).ToArray();
-            
-            foreach (var t in testImgs)
-            {
+
+            foreach (var t in testImgs) {
                 var result = FindReference(refImgs, t);
                 var validate = ValidateReferenceFound(result);
                 var statusFinal = new Status();
-                if (validate.ReferenceFinal == t.ScreenId)
-                {
+                if (validate.ReferenceFinal == t.ScreenId) {
                     statusFinal = Status.Ok;
                 }
-                else
-                {
+                else {
                     statusFinal = Status.Fail;
                 }
                 var newLine =
                     $"{t.ScreenId},{result.MaxKoef:0.###},{result.BestMatchKoef.RefImg.ScreenId},{result.StatusKoef},{validate.ValidationKoef:0.###},{validate.StatusAfterValKoef},{result.MinDist:0.###}," +
                     $"{result.BestMatchDist.RefImg.ScreenId},{result.StatusDist},{validate.ValidationDist:0.###},{validate.StatusAfterValDist},{validate.ReferenceFinal}, {statusFinal}";
                 csv.AppendLine(newLine);
-                if (validate.ReferenceFinal == t.ScreenId)
-                {
+                if (validate.ReferenceFinal == t.ScreenId) {
                     qa.TP += 1;
                 }
-                else if (validate.ReferenceFinal == 0)
-                {
+                else if (validate.ReferenceFinal == 0) {
                     var allScreenIds = refImgs.Select(x => x.ScreenId).ToArray();
-                    if (allScreenIds.Contains(t.ScreenId))
-                    {
+                    if (allScreenIds.Contains(t.ScreenId)) {
                         qa.TN += 1;
                     }
-                    else
-                    {
+                    else {
                         qa.FN += 1;
                     }
                 }
-                else if (validate.ReferenceFinal != t.ScreenId)
-                {
+                else if (validate.ReferenceFinal != t.ScreenId) {
                     qa.FP += 1;
                 }
             }
             var date = System.DateTime.Now;
-            var path = Path.Combine(Images.WriteFolder, $"ORB_{date:d-M-yyyy h-m}.csv");
+            var path = Path.Combine(Images.WriteFolder, $"ORB_{date:d-M-yyyy h-m-s}.csv");
             File.WriteAllText(path, csv.ToString());
             return qa;
 
         }
 
-        private static ReferenceFound FindReference(IEnumerable<Images> refImgs, Images testImg)
-        {
+        public static ReferenceFound FindReference(IEnumerable<Images> refImgs, Images testImg) {
             var bestMatchKoef = new Pairs();
             var bestMatchDist = new Pairs();
             var maxKoef = 0d;
@@ -164,27 +153,22 @@ namespace OpenCVSharpSandbox
             var validationDist = 0d;
             var validationKoef = 0d;
 
-            foreach (var t in refImgs)
-            {
+            foreach (var t in refImgs) {
                 var bfmatcher = new BFMatcher(NormType.Hamming);
                 var matchesKnn = bfmatcher.KnnMatch(testImg.Descriptors, t.Descriptors, 2);
                 var matches = bfmatcher.Match(testImg.Descriptors, t.Descriptors);
                 var resultKoef = Descriptoring.RatioValidator(matchesKnn);
                 var resultDist = Descriptoring.AverageDistanceOfMatchedDescriptors(matches);
-                if (maxKoef < resultKoef)
-                {
-                    bestMatchKoef = new Pairs()
-                    {
+                if (maxKoef < resultKoef) {
+                    bestMatchKoef = new Pairs() {
                         TestImg = testImg,
                         RefImg = t,
                         matchesKnn = matchesKnn
                     };
                     maxKoef = resultKoef;
                 }
-                if (minDistance > resultDist)
-                {
-                    bestMatchDist = new Pairs()
-                    {
+                if (minDistance > resultDist) {
+                    bestMatchDist = new Pairs() {
                         TestImg = testImg,
                         RefImg = t,
                         matches = matches
@@ -194,8 +178,7 @@ namespace OpenCVSharpSandbox
             }
             var statusKoef = testImg.ScreenId == bestMatchKoef.RefImg.ScreenId ? Status.Ok : Status.Fail;
             var statusDist = testImg.ScreenId == bestMatchDist.RefImg.ScreenId ? Status.Ok : Status.Fail;
-            var result = new ReferenceFound()
-            {
+            var result = new ReferenceFound() {
                 StatusKoef = statusKoef,
                 StatusDist = statusDist,
                 BestMatchKoef = bestMatchKoef,
@@ -206,46 +189,48 @@ namespace OpenCVSharpSandbox
             return result;
         }
 
-        private static ReferenceValidation ValidateReferenceFound(ReferenceFound reference)
-        {
-            var validationKoef = Descriptoring.MatchValidator(reference.BestMatchKoef.matchesKnn, reference.BestMatchKoef.TestImg.Points, reference.BestMatchKoef.RefImg.Points);
-            var validationDist = Descriptoring.MatchValidator(reference.BestMatchDist.matches, reference.BestMatchDist.TestImg.Points, reference.BestMatchDist.RefImg.Points);
+        private static ReferenceValidation ValidateReferenceFound(ReferenceFound reference) {
+            var validationKoef = Descriptoring.MatchValidator(reference.BestMatchKoef.matchesKnn,
+                reference.BestMatchKoef.TestImg.Points,
+                reference.BestMatchKoef.RefImg.Points);
+            var validationDist = Descriptoring.MatchValidator(reference.BestMatchDist.matches,
+                reference.BestMatchDist.TestImg.Points,
+                reference.BestMatchDist.RefImg.Points);
             var statusAfterValKoef = new Status();
             var statusAfterValDist = new Status();
 
-            if (validationKoef > TresholdForValidationKoef)
-            {
+            if (validationKoef > TresholdForValidationKoef) {
                 statusAfterValKoef = Status.Ok;
             }
-            else
-            {
+            else {
                 Descriptoring.DrawMatchesImages(reference.BestMatchKoef.TestImg, reference.BestMatchKoef.RefImg, reference.BestMatchKoef.matchesKnn);
                 statusAfterValKoef = Status.Fail;
             }
-            if (validationDist > TresholdForValidationKoef)
-            {
+            if (validationDist > TresholdForValidationKoef) {
                 statusAfterValDist = Status.Ok;
             }
-            else
-            {
+            else {
                 Descriptoring.DrawMatchesImages(reference.BestMatchDist.TestImg, reference.BestMatchDist.RefImg, reference.BestMatchDist.matches);
                 statusAfterValDist = Status.Fail;
             }
             var referenceFinal = reference.BestMatchKoef.RefImg.ScreenId;
-            if ((statusAfterValKoef == Status.Fail) && (statusAfterValDist == Status.Fail))
-            {
+            if ((statusAfterValKoef == Status.Fail) && (statusAfterValDist == Status.Fail)) {
                 referenceFinal = 0;
             }
-            else if (statusAfterValKoef == Status.Fail)
-            {
+            else if (statusAfterValKoef == Status.Fail) {
                 referenceFinal = reference.BestMatchDist.RefImg.ScreenId;
             }
-            return new ReferenceValidation{ReferenceFinal = referenceFinal, StatusAfterValDist = statusAfterValDist,
-                StatusAfterValKoef = statusAfterValKoef,ValidationKoef = validationKoef, ValidationDist = validationDist} ;
+            return new ReferenceValidation {
+                ReferenceFinal = referenceFinal,
+                StatusAfterValDist = statusAfterValDist,
+                StatusAfterValKoef = statusAfterValKoef,
+                ValidationKoef = validationKoef,
+                ValidationDist = validationDist
+            };
         }
+
         public Quality EvaluateImageCollectionSimple(string device, string version, Images[] refImgCollection,
-           Images[] testImgCollection)
-        {
+                                                     Images[] testImgCollection) {
             var qa = new Quality(0, 0, 0, 0);
             csv.AppendLine($"{Descriptoring.orbParameters}, Device: {device}, Version: {version}");
             var refImgs =
@@ -253,21 +238,17 @@ namespace OpenCVSharpSandbox
             var testImgs =
                 testImgCollection.Where(x => x.Device == device && x.Version == version).Select(x => x).ToArray();
 
-            foreach (var t in testImgs)
-            {
+            foreach (var t in testImgs) {
                 var result = FindReference(refImgs, t);
                 int ReferenceFinal = 0;
-                if (result.MaxKoef > TresholdForValidationKoef)
-                {
+                if (result.MaxKoef > TresholdForValidationKoef) {
                     ReferenceFinal = result.BestMatchKoef.RefImg.ScreenId;
                 }
                 var statusFinal = new Status();
-                if (ReferenceFinal == t.ScreenId)
-                {
+                if (ReferenceFinal == t.ScreenId) {
                     statusFinal = Status.Ok;
                 }
-                else
-                {
+                else {
                     statusFinal = Status.Fail;
                     Descriptoring.DrawMatchesImages(result.BestMatchKoef.TestImg, result.BestMatchKoef.RefImg, result.BestMatchKoef.matchesKnn);
                 }
@@ -275,24 +256,19 @@ namespace OpenCVSharpSandbox
                     $"{t.ScreenId},{result.MaxKoef:0.###},{result.BestMatchKoef.RefImg.ScreenId},{result.StatusKoef},{result.MinDist:0.###}," +
                     $"{result.BestMatchDist.RefImg.ScreenId},{result.StatusDist},{ReferenceFinal}, {statusFinal}";
                 csv.AppendLine(newLine);
-                if (ReferenceFinal == t.ScreenId)
-                {
+                if (ReferenceFinal == t.ScreenId) {
                     qa.TP += 1;
                 }
-                else if (ReferenceFinal == 0)
-                {
+                else if (ReferenceFinal == 0) {
                     var allScreenIds = refImgs.Select(x => x.ScreenId).ToArray();
-                    if (allScreenIds.Contains(t.ScreenId))
-                    {
+                    if (allScreenIds.Contains(t.ScreenId)) {
                         qa.TN += 1;
                     }
-                    else
-                    {
+                    else {
                         qa.FN += 1;
                     }
                 }
-                else if (ReferenceFinal != t.ScreenId)
-                {
+                else if (ReferenceFinal != t.ScreenId) {
                     qa.FP += 1;
                 }
             }
